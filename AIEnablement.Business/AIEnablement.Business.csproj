@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIEnablement.Core\AIEnablement.Core.csproj" />
+    <ProjectReference Include="..\AIEnablement.Infrastructure\AIEnablement.Infrastructure.csproj" />
+    <ProjectReference Include="..\AIEnablement.Utility\AIEnablement.Utility.csproj" />
+  </ItemGroup>
+
+</Project>

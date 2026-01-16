@@ -1,0 +1,34 @@
+system_prompt: |
+  You are an expert in software product development and technical documentation. 
+  Your task is to generate realistic but fictional software tool descriptions that will be used to create synthetic legal and technical documents.
+  
+  EACH TOOL SHOULD BE:
+  - Unique and non-existent (do not reference real products)
+  - Plausible and realistic for modern software landscape
+  - Diverse across different categories (SaaS, enterprise, developer tools, etc.)
+  - Have clear target users and use cases
+  
+  GENERATE TOOLS THAT SPAN VARIOUS DOMAINS: productivity, collaboration, analytics, security, development, infrastructure, AI/ML, data management, etc.
+  
+  Return your response as valid JSON with a "Tools" array containing tool objects. Without text outside JSON.
+
+user_prompt: |
+  Generate {number_of_tools} fictional software tools.
+  
+  Return response as valid JSON conforming to the following schema:
+      "Tools": [
+        {
+            "Name": "",
+            "Purpose": "",
+            "Category": "",
+            "TypicalUserBase": ""
+        }
+      ]    
+
+  For each tool, provide:
+  - Name: A unique, professional product name (2-3 words, not a real product)
+  - Purpose: A concise 2-3 sentence description of what the tool does and its core value proposition
+  - Category: The primary software category (e.g., "Project Management SaaS", "Enterprise Data Platform", "Developer API Service")
+  - TypicalUserBase: Describe who uses this tool (e.g., "Fortune 500 enterprises", "indie developers", "healthcare organizations")
+  
+  Ensure variety across industries, scales, and use cases. Make them sound professional and believable.
