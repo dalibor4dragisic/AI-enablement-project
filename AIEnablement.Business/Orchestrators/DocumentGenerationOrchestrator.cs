@@ -84,12 +84,11 @@ public class DocumentGenerationOrchestrator
         // Generate ToC structure
         var toc = await _tocGenerationService.GenerateTocAsync(tool);
         
-        // Save ToC as JSON file
-        var tocFileName = $"toc_{SanitizeFileName(tool.Name)}.json";
-        var tocPath = Path.Combine(outputDir, tocFileName);
-        var tocJson = JsonSerializer.Serialize(toc, new JsonSerializerOptions { WriteIndented = true });
-
-        await File.WriteAllTextAsync(tocPath, tocJson);
+        //// Save ToC as JSON file
+        //var tocFileName = $"toc_{SanitizeFileName(tool.Name)}.json";
+        //var tocPath = Path.Combine(outputDir, tocFileName);
+        //var tocJson = JsonSerializer.Serialize(toc, new JsonSerializerOptions { WriteIndented = true });
+        //await File.WriteAllTextAsync(tocPath, tocJson);
 
         // Generate HTML sections
         _logger.LogInformation("Generating sections...");
@@ -102,7 +101,7 @@ public class DocumentGenerationOrchestrator
         };
 
         await GenerateSectionsRecursivelyAsync(context, toc.Sections, outputDir);
-  
+
         // Write tool content to file
         var documentContext = JsonSerializer.Serialize(context, new JsonSerializerOptions { WriteIndented = true });
         await File.WriteAllTextAsync(Path.Combine(outputDir, $"tool_{SanitizeFileName(tool.Name)}.json"), documentContext);

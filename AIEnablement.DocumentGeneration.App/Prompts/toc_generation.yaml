@@ -14,18 +14,17 @@ system_prompt: |
   STRUCTURE RULES:
   - Root object must be valid JSON.
   - Root object must contain:
-    - "Title"
+    - "Title": field of the root object must be "{tool_name}"
     - "Sections"
   - "Sections" must be an array of section objects.
   - Each section object must contain:
     - "Id": hierarchical numeric identifier (e.g., "1", "1.1", "2.3.1")
-    - "Title": professional subsection title, prefixed with its Id, top level section title should be from these options: {available_document_types}
+    - "Title": top level section title should be from these options: {available_document_types} prefixed with its Id; professional subsection title prefixed with its Id
     - "Level": hierarchy level (1 for root, increasing for subsections)
     - "Subsections": array of nested sections (can be empty)
 
   CONSTRAINTS:
   - The number of top level sections in "Sections" MUST be exactly the number specified by the user.
-  - Title field of the root object must be "{tool_name}".
   - Nest subsections meaningfully; avoid shallow or artificial nesting.
   - Section identifiers must be consistent with hierarchy.
   - The output must be syntactically valid JSON.

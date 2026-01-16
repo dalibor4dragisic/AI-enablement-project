@@ -4,7 +4,7 @@ namespace AIEnablement.Core.Models.DocumentGeneration;
 
 public class ToolIdeationResponse
 {
-    public List<ToolDescription> Tools { get; set; } = new();
+    public List<ToolDescription> Tools { get; set; } = [];
 }
 
 public class ToolDescription
@@ -13,13 +13,13 @@ public class ToolDescription
     public string Purpose { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string TypicalUserBase { get; set; } = string.Empty;
-    public List<string> DocumentTypes { get; set; } = new();
+    public List<string> DocumentTypes { get; set; } = [];
 }
 
 public class TableOfContents
 {
     public string Title { get; set; } = string.Empty;
-    public List<TocSection> Sections { get; set; } = new();
+    public List<TocSection> Sections { get; set; } = [];
 }
 
 public class TocSection
@@ -31,7 +31,7 @@ public class TocSection
     public GeneratedSection? GeneratedSection { get; set; }
     public bool ShouldHaveIssue { get; set; }
     public int NumberOfRequiredIssues { get; set; }
-    public List<TocSection> Subsections { get; set; } = new();
+    public List<TocSection> Subsections { get; set; } = [];
 }
 
 public class GeneratedSection
@@ -39,19 +39,18 @@ public class GeneratedSection
     public string SectionId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string HtmlContent { get; set; } = string.Empty;
-    public List<string> InjectedIssues { get; set; } = new();
+    public List<string> InjectedIssues { get; set; } = [];
 }
 
 public class GeneratedSectionResponse
 {
     public string SectionHtml { get; set; } = string.Empty;
-    public List<string> IssuesApplied { get; set; } = new();
+    public List<string> IssuesApplied { get; set; } = [];
 }
 
 public class DocumentGenerationContext
 {
-    public ToolDescription? Tool { get; set; }
-    //public string DocumentType { get; set; } = string.Empty;
-    public TableOfContents? Toc { get; set; }
-    public List<GeneratedSection> GeneratedSections { get; set; } = new();
+    public ToolDescription Tool { get; set; } = new();
+    public TableOfContents Toc { get; set; } = new();
+    public List<GeneratedSection> GeneratedSections { get; set; } = [];
 }

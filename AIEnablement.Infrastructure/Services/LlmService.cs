@@ -74,7 +74,7 @@ public class LlmService : ILlmService
 
         var content = result.Content ?? throw new InvalidOperationException("LLM returned null content");
 
-        var cleanJson = result.Content.CleanJson();
+        var cleanJson = content.CleanJson();
 
         if (!_validationService.ValidateJson(cleanJson, out var jsonErrors))
         {

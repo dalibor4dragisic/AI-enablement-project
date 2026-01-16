@@ -6,7 +6,7 @@ C# .NET 9 console application for generating synthetic software terms and privac
 
 - **Dependency Injection**: Full DI container setup with Microsoft.Extensions.DependencyInjection
 - **Semantic Kernel Integration**: LLM integration via Microsoft.SemanticKernel
-- **Multi-Phase Generation**: Tool ideation → ToC generation → Section-by-section generation
+- **Multi-Phase Generation**: Tool ideation -> ToC generation -> Section-by-section generation
 - **Structured Outputs**: JSON schema enforcement using OpenAI's structured output feature
 - **Data Quality Issues**: Automatic injection of contradictions, ambiguities, typos, and inconsistencies
 - **Validation**: HTML and JSON validation for all generated artifacts
@@ -14,29 +14,49 @@ C# .NET 9 console application for generating synthetic software terms and privac
 
 ## Project Structure
 
-```
-DocumentGenerator/
-├── Configuration/
-│   └── AppConfiguration.cs          # Configuration models
-├── Models/
-│   └── DomainModels.cs              # Domain entities
-├── Services/
-│   ├── ILlmService.cs               # LLM abstraction
-│   ├── SemanticKernelLlmService.cs  # SK implementation
-│   ├── ToolIdeationService.cs       # Phase 1: Tool generation
-│   ├── TocGenerationService.cs      # Phase 2: ToC generation
-│   ├── SectionGenerationService.cs  # Phase 3: Section generation
-│   ├── DocumentAssemblyService.cs   # HTML assembly
-│   ├── ValidationService.cs         # Validation logic
-│   └── DocumentGenerationOrchestrator.cs  # Main coordinator
-├── prompts/
-│   ├── tool_ideation.yaml
-│   ├── toc_generation.yaml
-│   └── section_generation.yaml
-├── Program.cs                       # Entry point
-├── appsettings.json                 # Configuration
-└── DocumentGenerator.csproj
-```
+AIEnablement.Business
+├── Orchestrators
+│   └── DocumentGenerationOrchestrator.cs
+└── Services
+    └── DocumentGeneration
+        ├── DocumentAssemblyService.cs
+        ├── SectionGenerationService.cs
+        ├── TocGenerationService.cs
+        └── ToolIdeationService.cs
+
+AIEnablement.Core
+├── Interfaces
+│   ├── DocumentGeneration
+│   │   ├── IDocumentAssemblyService.cs
+│   │   ├── ISectionGenerationService.cs
+│   │   ├── ITocGenerationService.cs
+│   │   └── IToolIdeationService.cs
+│   └── Infrastructure
+│       ├── ILlmService.cs
+│       └── IPromptService.cs
+└── Models
+    ├── ConfigurationModels.cs
+    └── DocumentGeneration
+        └── Models.cs
+
+AIEnablement.DocumentGeneration.App
+├── appsettings.json
+├── Program.cs                                      # Entry point
+└── Prompts
+    ├── section_generation.yaml
+    ├── toc_generation.yaml
+    └── tool_ideation.yaml
+
+AIEnablement.Infrastructure
+└── Services
+    ├── LlmService.cs
+    └── PromptService.cs
+
+AIEnablement.Utility
+├── Extensions
+│   └── JsonExtensions.cs
+└── Services
+    └── ValidationService.cs
 
 ## Setup
 
@@ -76,7 +96,7 @@ Configure all generation parameters:
   - `SectionGenerationModel`: Cost-effective model (gpt-4o-mini)
   - `ToolIdeationModel`: Model for tool ideation (gpt-4o)
 - **Temperature & TopP**: Adjust for variety
-- **DataQuality**: Configure issue injection (2-3 issues per document)
+- **DataQuality**: Configure issue injection (2-3 issues per section)
 
 ### Prompt Files (prompts/*.yaml)
 
@@ -104,20 +124,20 @@ The application will:
    - Inject 2-3 quality issues
    - Assemble into valid HTML
    - Validate HTML and JSON
-4. Save outputs to `/data` folder
+4. Save outputs to `/data` folder (e.g. AIEnablement.DocumentGeneration.App\bin\Debug\net9.0\data\)
 
 ## Output Structure
 
 ```
-data/
-├── tool1_name/
+/data/
+├── tool1/
 │   ├── toc_privacy_policy.json
 │   ├── privacy_policy.html
 │   ├── toc_terms_of_service.json
 │   ├── terms_of_service.html
-│   └── ...
-├── tool2_name/
-│   └── ...
+│   ├── ...
+├── tool2/
+│   ├── ...
 └── ...
 ```
 
@@ -139,20 +159,15 @@ Each section generation receives:
 
 ### Structured Outputs
 
-Uses OpenAI's structured output feature via Semantic Kernel:
-```csharp
-ResponseFormat = typeof(T)
-```
-
 Ensures valid JSON conforming to C# models.
 
 ### Quality Issues
 
 Automatically injects issues based on configuration:
-- **ContradictoryClause**: Conflicting statements
-- **AmbiguousLanguage**: Vague terms without definitions
-- **MinorTypo**: Subtle spelling errors
-- **InconsistentTerminology**: Variable term usage
+- **ContradictoryClause**: A statement contradicting previous content or the same section
+- **AmbiguousLanguage**: Unclear, undefined terms
+- **MinorTypo**: Subtle typographical errors
+- **InconsistentTerminology**: Inconsistent use of equivalent terms
 
 Tracked per section for analysis.
 
@@ -180,12 +195,6 @@ Tracked per section for analysis.
   }
 }
 ```
-
-### Adjusting Output Length
-
-Modify prompts in `prompts/section_generation.yaml`:
-- Increase word count targets
-- Add complexity requirements
 
 ### Adding Document Types
 
@@ -215,7 +224,6 @@ Modify prompts in `prompts/section_generation.yaml`:
 
 - Check DataQuality configuration
 - Verify issue injection logic in SectionGenerationService
-- Review LLM responses in logs
 
 ## Architecture Decisions
 
