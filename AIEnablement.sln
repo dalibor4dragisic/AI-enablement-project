@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIEnablement.Utility", "AIE
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIEnablement.Business", "AIEnablement.Business\AIEnablement.Business.csproj", "{0BB072DA-605E-4D18-AD1B-0FB3781E935F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIEnablement.Chatbot.App", "AIEnablement.Chatbot.App\AIEnablement.Chatbot.App.csproj", "{B09B1CA2-6662-408A-851C-3A444336F289}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{0BB072DA-605E-4D18-AD1B-0FB3781E935F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0BB072DA-605E-4D18-AD1B-0FB3781E935F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0BB072DA-605E-4D18-AD1B-0FB3781E935F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B09B1CA2-6662-408A-851C-3A444336F289}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B09B1CA2-6662-408A-851C-3A444336F289}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B09B1CA2-6662-408A-851C-3A444336F289}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B09B1CA2-6662-408A-851C-3A444336F289}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

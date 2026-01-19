@@ -2,5 +2,5 @@
 
 public interface IPromptService
 {
-    Dictionary<string, object> LoadPromptFromFile(string path);
+    Dictionary<string, string> LoadPromptFromFile(string path);
 }

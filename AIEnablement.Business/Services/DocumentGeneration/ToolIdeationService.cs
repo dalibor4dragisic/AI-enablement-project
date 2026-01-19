@@ -31,9 +31,8 @@ public class ToolIdeationService : IToolIdeationService
         _logger.LogInformation("Generating {Count} tool descriptions...", _config.Generation.NumberOfTools);
 
         var promptData = _promptService.LoadPromptFromFile(_config.Prompts.ToolIdeationPromptPath);
-        var systemPrompt = promptData["system_prompt"].ToString() ?? string.Empty;
-        var userPromptTemplate = promptData["user_prompt"].ToString() ?? string.Empty;
-
+        var systemPrompt = promptData["system_prompt"];
+        var userPromptTemplate = promptData["user_prompt"];
         var userPrompt = userPromptTemplate
             .Replace("{number_of_tools}", _config.Generation.NumberOfTools.ToString())
             .Replace("{available_document_types}", string.Join(", ", _config.Generation.AvailableDocumentTypes));

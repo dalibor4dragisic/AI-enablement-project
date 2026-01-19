@@ -35,8 +35,8 @@ public class SectionGenerationService : ISectionGenerationService
         _logger.LogInformation("Generating section: {SectionId} - {Title}", section.Id, section.Title);
 
         var promptData = _promptService.LoadPromptFromFile(_config.Prompts.SectionGenerationPromptPath);
-        var systemPromptTemplate = promptData["system_prompt"].ToString() ?? string.Empty;
-        var userPromptTemplate = promptData["user_prompt"].ToString() ?? string.Empty;
+        var systemPromptTemplate = promptData["system_prompt"];
+        var userPromptTemplate = promptData["user_prompt"];
 
         var previousSectionsHtml = BuildPreviousSectionsHtmlContext(context.Toc.Sections);
 

@@ -30,13 +30,13 @@ public class TocGenerationService : ITocGenerationService
     {
         var promptData = _promptService.LoadPromptFromFile(_config.Prompts.TocGenerationPromptPath);
 
-        var systemPromptTemplate = promptData["system_prompt"].ToString() ?? string.Empty;
+        var systemPromptTemplate = promptData["system_prompt"];
         var systemPrompt = systemPromptTemplate
             .Replace("{available_document_types}", string.Join(", ", tool.DocumentTypes))
             .Replace("{tool_name}", tool.Name);
 
 
-        var userPromptTemplate = promptData["user_prompt"].ToString() ?? string.Empty;
+        var userPromptTemplate = promptData["user_prompt"];
         var userPrompt = userPromptTemplate
             .Replace("{tool_name}", tool.Name)
             .Replace("{tool_purpose}", tool.Purpose)
