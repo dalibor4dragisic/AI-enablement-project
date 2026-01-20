@@ -1,4 +1,4 @@
-using AIEnablement.Core.Interfaces.Infrastructure;
+using AIEnablement.Core.Interfaces.DocumentGeneration;
 using AIEnablement.Core.Models;
 using AIEnablement.Utility.Extensions;
 using AIEnablement.Utility.Services;
@@ -9,13 +9,13 @@ using System.Text.Json;
 
 namespace AIEnablement.Infrastructure.Services;
 
-public class LlmService : ILlmService
+public class LLMDocumentService : ILLMDocumentService
 {
     private readonly IValidationService _validationService;
     private readonly AppConfiguration _config;
     private readonly Kernel _kernel;
 
-    public LlmService(AppConfiguration config, IValidationService validationService)
+    public LLMDocumentService(AppConfiguration config, IValidationService validationService)
     {
         _config = config;
         _validationService = validationService;

@@ -18,14 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Prompts\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Prompts\personality.yaml">
+    <None Update="Prompts\chatbot_personality.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

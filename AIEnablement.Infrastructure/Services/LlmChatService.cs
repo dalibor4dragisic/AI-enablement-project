@@ -1,23 +1,23 @@
-﻿using AIEnablement.Core.Interfaces.Chatbot;
-using AIEnablement.Core.Models.Chatbot;
+﻿using AIEnablement.Core.Models.Chatbot;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using AIEnablement.Infrastructure.Plugins;
+using AIEnablement.Core.Interfaces.Chatbot;
 
 namespace AIEnablement.Infrastructure.Services;
 
-public class LlmChatService : IChatService
+public class LLMChatService : ILLMChatService
 {
     private readonly Kernel _kernel;
     private readonly ChatbotConfiguration _config;
-    private readonly ILogger<LlmChatService> _logger;
+    private readonly ILogger<LLMChatService> _logger;
 
-    public LlmChatService(
+    public LLMChatService(
         ChatbotConfiguration config,
         DateToolsPlugin dateToolsPlugin,
-        ILogger<LlmChatService> logger)
+        ILogger<LLMChatService> logger)
     {
         _config = config;
         _logger = logger;

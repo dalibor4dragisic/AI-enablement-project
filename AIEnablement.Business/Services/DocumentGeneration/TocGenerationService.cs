@@ -8,14 +8,14 @@ namespace AIEnablement.Business.Services.DocumentGeneration;
 
 public class TocGenerationService : ITocGenerationService
 {
-    private readonly ILlmService _llmService;
+    private readonly ILLMDocumentService _llmService;
     private readonly IPromptService _promptService;
     private readonly AppConfiguration _config;
     private readonly ILogger<TocGenerationService> _logger;
     private readonly Random _random = new();
 
     public TocGenerationService(
-        ILlmService llmService,
+        ILLMDocumentService llmService,
         IPromptService promptService,
         AppConfiguration config,
         ILogger<TocGenerationService> logger)

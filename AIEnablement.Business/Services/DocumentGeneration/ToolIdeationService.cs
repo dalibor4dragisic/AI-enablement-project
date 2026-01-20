@@ -8,14 +8,14 @@ namespace AIEnablement.Business.Services.DocumentGeneration;
 
 public class ToolIdeationService : IToolIdeationService
 {
-    private readonly ILlmService _llmService;
+    private readonly ILLMDocumentService _llmService;
     private readonly IPromptService _promptService;
     private readonly AppConfiguration _config;
     private readonly ILogger<ToolIdeationService> _logger;
     private readonly Random _random = new();
 
     public ToolIdeationService(
-        ILlmService llmService,
+        ILLMDocumentService llmService,
         IPromptService promptService,
         AppConfiguration config,
         ILogger<ToolIdeationService> logger)

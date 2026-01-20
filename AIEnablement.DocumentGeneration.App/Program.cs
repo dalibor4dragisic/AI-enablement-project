@@ -23,7 +23,7 @@ internal class Program
                 services.AddSingleton(config);
 
                 // Register services
-                services.AddSingleton<ILlmService, LlmService>();
+                services.AddSingleton<ILLMDocumentService, LLMDocumentService>();
                 services.AddSingleton<IPromptService, PromptService>();
                 services.AddSingleton<IToolIdeationService, ToolIdeationService>();
                 services.AddSingleton<ITocGenerationService, TocGenerationService>();

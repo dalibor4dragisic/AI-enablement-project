@@ -7,21 +7,21 @@ namespace AIEnablement.Business.Orchestrators;
 
 public class ChatbotOrchestrator
 {
-    private readonly IChatService _chatService;
-    private readonly IConversationManager _conversationManager;
+    private readonly ILLMChatService _chatService;
+    private readonly IChatManager _chatManager;
     private readonly IPromptService _promptService;
     private readonly ChatbotConfiguration _config;
     private readonly ILogger<ChatbotOrchestrator> _logger;
 
     public ChatbotOrchestrator(
-        IChatService chatService,
-        IConversationManager conversationManager,
+        ILLMChatService chatService,
+        IChatManager chatManager,
         IPromptService promptService,
         ChatbotConfiguration config,
         ILogger<ChatbotOrchestrator> logger)
     {
         _chatService = chatService;
-        _conversationManager = conversationManager;
+        _chatManager = chatManager;
         _promptService = promptService;
         _config = config;
         _logger = logger;
@@ -38,9 +38,9 @@ public class ChatbotOrchestrator
     {
         Console.Clear();
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("╔════════════════════════════════════════════════════════════╗");
-        Console.WriteLine($"║  {_config.Assistant.Name,-54} Chatbot  ║");
-        Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
+        Console.WriteLine("--------------------------------------------------------------");
+        Console.WriteLine($"  {_config.Assistant.Name,-50} Chatbot");
+        Console.WriteLine("--------------------------------------------------------------");
         Console.ResetColor();
         Console.WriteLine();
         Console.WriteLine("Commands:");
@@ -54,7 +54,7 @@ public class ChatbotOrchestrator
     private void InitializeConversation()
     {
         var systemPrompt = LoadSystemPrompt();
-        _conversationManager.AddSystemMessage(systemPrompt);
+        _chatManager.AddSystemMessage(systemPrompt);
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"{_config.Assistant.Name}: Hello! How can I help you today?");
@@ -84,8 +84,8 @@ public class ChatbotOrchestrator
             }
 
             // Process user message
-            _conversationManager.AddUserMessage(userInput);
-            _conversationManager.TrimHistory();
+            _chatManager.AddUserMessage(userInput);
+            _chatManager.TrimHistory();
 
             try
             {
@@ -95,7 +95,7 @@ public class ChatbotOrchestrator
                 var thinkingTask = AnimateThinking();
 
                 // Get response
-                var chatHistory = _conversationManager.GetChatHistory();
+                var chatHistory = _chatManager.GetChatHistory();
                 var response = await _chatService.GetResponseAsync(chatHistory);
 
                 // Stop animation
@@ -104,7 +104,7 @@ public class ChatbotOrchestrator
                 Console.ResetColor();
 
                 // Display response
-                _conversationManager.AddAssistantMessage(response);
+                _chatManager.AddAssistantMessage(response);
 
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"{_config.Assistant.Name}: {response}");
@@ -127,7 +127,6 @@ public class ChatbotOrchestrator
         switch (command.ToLower())
         {
             case "/exit":
-            case "/quit":
                 Console.ForegroundColor = ConsoleColor.Cyan;
                 Console.WriteLine($"\n{_config.Assistant.Name}: Goodbye! Have a great day!");
                 Console.ResetColor();
@@ -157,28 +156,29 @@ public class ChatbotOrchestrator
 
     private void DisplaySummary()
     {
-        var summary = _conversationManager.GetSummary();
+        var summary = _chatManager.GetSummary();
 
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("\n╔═══ Conversation Summary ═══╗");
+        Console.WriteLine("\n--- Conversation Summary ---");
         Console.WriteLine($"  Started: {summary.ConversationStarted:HH:mm:ss}");
         Console.WriteLine($"  Duration: {summary.Duration:mm\\:ss}");
         Console.WriteLine($"  Total Messages: {summary.TotalMessages}");
+        Console.WriteLine($"    • System Messages: {summary.SystemMessages}");
         Console.WriteLine($"    • Your Messages: {summary.UserMessages}");
         Console.WriteLine($"    • Assistant Messages: {summary.AssistantMessages}");
         Console.WriteLine($"    • GetCurrentDate Calls: {summary.GetCurrentDateToolCalls}");
         Console.WriteLine($"    • AddDaysToDate Calls: {summary.AddDaysToDateToolCalls}");
-        Console.WriteLine("╚════════════════════════════╝");
+        Console.WriteLine("------------------------------");
         Console.ResetColor();
         Console.WriteLine();
     }
 
     private void DisplayHistory()
     {
-        var messages = _conversationManager.GetAllMessages();
+        var messages = _chatManager.GetAllMessages();
 
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("\n╔═══ Conversation History ═══╗");
+        Console.WriteLine("\n--- Conversation History ---");
         Console.ResetColor();
 
         foreach (var msg in messages.Where(m => m.Role != ChatRole.System))
@@ -200,7 +200,7 @@ public class ChatbotOrchestrator
 
         Console.ResetColor();
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("╚════════════════════════════╝");
+        Console.WriteLine("-------------------------------");
         Console.ResetColor();
         Console.WriteLine();
     }

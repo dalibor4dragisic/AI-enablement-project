@@ -2,12 +2,12 @@
 
 namespace AIEnablement.Core.Interfaces.Chatbot;
 
-public interface IConversationManager
+public interface IChatManager
 {
     void AddSystemMessage(string content);
     void AddUserMessage(string content);
     void AddAssistantMessage(string content);
-    List<ChatContent> GetChatHistory(); //ChatHistory GetChatHistory();
+    List<ChatContent> GetChatHistory();
     ConversationSummary GetSummary();
     List<ChatContent> GetAllMessages();
     void TrimHistory();

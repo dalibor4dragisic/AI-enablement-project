@@ -3,16 +3,15 @@ using AIEnablement.Core.Models.Chatbot;
 
 namespace AIEnablement.Business.Services.Chatbot;
 
-public class ConversationManager : IConversationManager
+public class ChatManager : IChatManager
 {
-    //private readonly List<ChatMessage> _messages = new();
     private readonly List<ChatContent> _messages = new();
     private readonly ChatbotConfiguration _config;
     private readonly DateTime _conversationStarted;
     private int _getCurrentDatePluginCalls;
     private int _addDaysToDatePluginCalls;
 
-    public ConversationManager(ChatbotConfiguration config)
+    public ChatManager(ChatbotConfiguration config)
     {
         _config = config;
         _conversationStarted = DateTime.Now;
@@ -45,38 +44,8 @@ public class ConversationManager : IConversationManager
         });
     }
 
-    //public void AddToolMessage(string toolCallId, string toolName, string content)
-    //{
-    //    _messages.Add(new ChatMessage
-    //    {
-    //        Role = "tool",
-    //        Content = content,
-    //        Timestamp = DateTime.Now,
-    //        ToolCallId = toolCallId,
-    //        ToolName = toolName
-    //    });
-    //}
-
-    public List<ChatContent> GetChatHistory() //public ChatHistory GetChatHistory()
+    public List<ChatContent> GetChatHistory()
     {
-        //var history = new ChatHistory();
-
-        //foreach (var message in _messages)
-        //{
-        //    switch (message.Role.ToLower())
-        //    {
-        //        case "system":
-        //            history.AddSystemMessage(message.Content);
-        //            break;
-        //        case "user":
-        //            history.AddUserMessage(message.Content);
-        //            break;
-        //        case "assistant":
-        //            history.AddAssistantMessage(message.Content);
-        //            break;
-        //    }
-        //}
-
         return _messages;
     }
 

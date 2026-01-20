@@ -21,8 +21,8 @@ internal class Program
                 var config = ChatbotConfiguration.Load("appsettings.json");
                 services.AddSingleton(config);
 
-                services.AddSingleton<IChatService, LlmChatService>();
-                services.AddSingleton<IConversationManager, ConversationManager>();
+                services.AddSingleton<ILLMChatService, LLMChatService>();
+                services.AddSingleton<IChatManager, ChatManager>();
                 services.AddSingleton<IPromptService, PromptService>();
                 services.AddSingleton<DateToolsPlugin>();
                 services.AddSingleton<ChatbotOrchestrator>();

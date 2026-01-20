@@ -6,9 +6,9 @@ namespace AIEnablement.Infrastructure.Plugins;
 
 public class DateToolsPlugin
 {
-    private readonly IConversationManager _conversationManager;
+    private readonly IChatManager _conversationManager;
 
-    public DateToolsPlugin(IConversationManager conversationManager)
+    public DateToolsPlugin(IChatManager conversationManager)
     {
         _conversationManager = conversationManager;
     }

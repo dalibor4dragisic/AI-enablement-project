@@ -10,14 +10,14 @@ namespace AIEnablement.Business.Services.DocumentGeneration;
 
 public class SectionGenerationService : ISectionGenerationService
 {
-    private readonly ILlmService _llmService;
+    private readonly ILLMDocumentService _llmService;
     private readonly IPromptService _promptService;
     private readonly IValidationService _validationService;
     private readonly AppConfiguration _config;
     private readonly ILogger<SectionGenerationService> _logger;
 
     public SectionGenerationService(
-        ILlmService llmService,
+        ILLMDocumentService llmService,
         IPromptService promptService,
         IValidationService validationService,
         AppConfiguration config,
