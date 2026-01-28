@@ -12,7 +12,6 @@ public class TocGenerationService : ITocGenerationService
     private readonly IPromptService _promptService;
     private readonly AppConfiguration _config;
     private readonly ILogger<TocGenerationService> _logger;
-    private readonly Random _random = new();
 
     public TocGenerationService(
         ILLMDocumentService llmService,
@@ -52,55 +51,8 @@ public class TocGenerationService : ITocGenerationService
             modelSettings
         );
 
-        AssignTextIssueToRandomSections(toc.Sections);
-
         _logger.LogInformation("Generated ToC with {Count} top-level sections", toc.Sections.Count);
 
         return toc;
-    }
-
-    private void AssignTextIssueToRandomSections(List<TocSection> topLevelSections)
-    {
-        foreach (var topLevelSection in topLevelSections)
-        {
-            var allSections = new List<TocSection>();
-            allSections.Add(topLevelSection);
-
-            AddAllSubsections(topLevelSection.Subsections, allSections);
-
-            var numberOfRequiredIssues = _random.Next(
-                _config.DataQuality.MinIssuesPerDocument,
-                _config.DataQuality.MaxIssuesPerDocument + 1);
-
-            topLevelSection.NumberOfRequiredIssues = numberOfRequiredIssues;
-
-            var allTocSections = allSections.ToArray();
-            _random.Shuffle(allTocSections);
-
-            var numberOfRandomizedSectionsToTake =
-                numberOfRequiredIssues > allTocSections.Length ? allTocSections.Length : numberOfRequiredIssues;
-            var tocSectionIssueCandidates = allTocSections.Take(numberOfRandomizedSectionsToTake);
-
-            foreach (var section in tocSectionIssueCandidates)
-            {
-                section.ShouldHaveIssue = true;
-            }
-
-            _logger.LogInformation("Marked {Number} issue candidates for top-level section {Section}.",
-                numberOfRandomizedSectionsToTake, topLevelSection.Title);
-        }
-    }
-
-    private void AddAllSubsections(List<TocSection> subSections, List<TocSection> allSections)
-    {
-        foreach (var subSection in subSections)
-        {
-            allSections.Add(subSection);
-
-            if (subSection.Subsections.Any())
-            {
-                AddAllSubsections(subSection.Subsections, allSections);
-            }
-        }
     }
 }

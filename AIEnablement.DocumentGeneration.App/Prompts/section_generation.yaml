@@ -32,13 +32,19 @@ system_prompt: |
   - If error injection is disabled, generate content without any issues.
   - It is mandatory that the issue be returned by random selection from 'Supported issue types'.
 
+  Previously Generated Sections:
+    {previous_sections}
+
   OUTPUT FORMAT:
   - Return a single valid JSON object.
   - Do NOT include any text outside JSON.
   - JSON must contain:
     - SectionHtml: full HTML content for the section.
     - IssuesApplied: array of strings with short explanation of where and what the error is, if it injected in html text (e.g. "MinorTypo - <short explanation of where and what the error is>), or empty if none.
-
+   
+  CRITICAL:
+  - Generate only one section HTML content based on Section Title: {section_title}. Content structure must be without nested subsection titles.
+  - Use Previous Generated Sections to continue this section.
 
 user_prompt: |
   Generate content for the following document section using the rules defined in the system instructions.
@@ -47,9 +53,6 @@ user_prompt: |
   Tool Purpose: {tool_purpose}
   Tool Category: {tool_category}
   Intended User Base: {user_base}
-
-  Previously Generated Sections:
-  {previous_sections}
 
   Section Details:
   - Section Title: {section_title}
@@ -63,3 +66,6 @@ user_prompt: |
   - If includeError is false, do not inject any issues.
   - Always return a valid JSON object as defined in the system instructions.
 
+  RETURN RESPONSE AS VALID JSON CONFORMING TO THE FOLLOWING SCHEMA:
+        "SectionHtml": "",
+        "IssuesApplied": []

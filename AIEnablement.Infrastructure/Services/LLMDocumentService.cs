@@ -63,7 +63,8 @@ public class LLMDocumentService : ILLMDocumentService
         {
             Temperature = modelSettings.Temperature,
             TopP = modelSettings.TopP,
-            ServiceId = modelSettings.ModelId
+            ServiceId = modelSettings.ModelId,
+            ResponseFormat = typeof(T)
         };
 
         var result = await chatCompletion.GetChatMessageContentAsync(

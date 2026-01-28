@@ -4,5 +4,5 @@ namespace AIEnablement.Core.Interfaces.DocumentGeneration;
 
 public interface IDocumentAssemblyService
 {
-    string AssembleDocument(DocumentGenerationContext context, TocSection tocSection,  bool shouldAddMetadata);
+    string AssembleDocument(DocumentGenerationContext context, TocSectionNested tocSection,  bool shouldAddMetadata);
 }

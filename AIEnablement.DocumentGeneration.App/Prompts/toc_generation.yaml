@@ -8,10 +8,10 @@ system_prompt: |
   - Subsection titles must reflect real world legal and technical documentation.
   - Ensure logical flow for top-level sections: {available_document_types}.
   - Vary complexity based on document type (e.g., SLAs are detailed, Privacy Policies are complete).
-  - Consider the tool’s purpose and intended user base when structuring sections.
+  - Consider the tool's purpose and intended user base when structuring sections.
   - Do NOT include explanatory text outside the JSON output.
 
-  STRUCTURE RULES:
+    STRUCTURE RULES:
   - Root object must be valid JSON.
   - Root object must contain:
     - "Title": field of the root object must be "{tool_name}"
@@ -21,7 +21,30 @@ system_prompt: |
     - "Id": hierarchical numeric identifier (e.g., "1", "1.1", "2.3.1")
     - "Title": top level section title should be from these options: {available_document_types} prefixed with its Id; professional subsection title prefixed with its Id
     - "Level": hierarchy level (1 for root, increasing for subsections)
-    - "Subsections": array of nested sections (can be empty)
+    - "ParentId": id of parent section
+
+  CRITICAL: Do NOT use nested subsections. All sections go in a single flat array.
+  Use 'parentId' to indicate hierarchy:
+  - Root sections: parentId = null
+  - Child sections: parentId = id of parent section
+  
+  Example structure:
+  {
+    "documentType": "Privacy Policy",
+    "title": "Privacy Policy - ToolName",
+    "sections": [
+      {"id": "1", "title": "Introduction", "level": 1, "parentId": null},
+      {"id": "1.1", "title": "Overview", "level": 2, "parentId": "1"},
+      {"id": "1.1.1", "title": "Scope", "level": 3, "parentId": "1.1"},
+      {"id": "2", "title": "Details", "level": 1, "parentId": null}
+    ]
+  }
+  
+  IDs should follow hierarchical numbering: "1", "1.1", "1.1.1", "2", "2.1", etc.
+
+
+    Return a valid JSON that matches the following schema. Do not include ```json or ``` in the response. The output must be plain JSON only.
+
 
   CONSTRAINTS:
   - The number of top level sections in "Sections" MUST be exactly the number specified by the user.
@@ -42,3 +65,5 @@ user_prompt: |
   - Use 2-4 levels of nesting where appropriate. Subsections should have meaningful depth.
  
   Generate the ToC as a single valid JSON object following the rules defined in the system instructions.
+
+  Remember: FLAT structure with parentId references, NOT nested subsections!

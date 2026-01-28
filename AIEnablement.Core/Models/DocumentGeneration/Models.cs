@@ -19,7 +19,7 @@ public class ToolDescription
 public class TableOfContents
 {
     public string Title { get; set; } = string.Empty;
-    public List<TocSection> Sections { get; set; } = [];
+    public List<TocSection> Sections { get; set; } = new();
 }
 
 public class TocSection
@@ -27,11 +27,27 @@ public class TocSection
     public string Id { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public int Level { get; set; }
-    //[JsonIgnore]
+    public string? ParentId { get; set; }
+}
+
+public class TableOfContentsNested
+{
+    public string Title { get; set; } = string.Empty;
+    public List<TocSectionNested> Sections { get; set; } = [];
+}
+
+public class TocSectionNested
+{
+    public string Id { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public int Level { get; set; }
+    [JsonIgnore]
     public GeneratedSection? GeneratedSection { get; set; }
+    [JsonIgnore]
     public bool ShouldHaveIssue { get; set; }
+    [JsonIgnore]
     public int NumberOfRequiredIssues { get; set; }
-    public List<TocSection> Subsections { get; set; } = [];
+    public List<TocSectionNested> Subsections { get; set; } = [];
 }
 
 public class GeneratedSection
@@ -51,6 +67,6 @@ public class GeneratedSectionResponse
 public class DocumentGenerationContext
 {
     public ToolDescription Tool { get; set; } = new();
-    public TableOfContents Toc { get; set; } = new();
+    public TableOfContentsNested Toc { get; set; } = new();
     public List<GeneratedSection> GeneratedSections { get; set; } = [];
 }

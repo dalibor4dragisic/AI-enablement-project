@@ -30,7 +30,7 @@ public class SectionGenerationService : ISectionGenerationService
         _logger = logger;
     }
 
-    public async Task<GeneratedSection> GenerateSectionAsync(DocumentGenerationContext context, TocSection section)
+    public async Task<GeneratedSection> GenerateSectionAsync(DocumentGenerationContext context, TocSectionNested section)
     {
         _logger.LogInformation("Generating section: {SectionId} - {Title}", section.Id, section.Title);
 
@@ -41,7 +41,9 @@ public class SectionGenerationService : ISectionGenerationService
         var previousSectionsHtml = BuildPreviousSectionsHtmlContext(context.Toc.Sections);
 
         var systemPrompt = systemPromptTemplate
-            .Replace("{section_level}", section.Level.ToString());
+            .Replace("{section_level}", section.Level.ToString())
+            .Replace("{section_title}", section.Title)
+            .Replace("{previous_sections}", previousSectionsHtml);
 
         var shouldInjectIssue = section.ShouldHaveIssue.ToString().ToLower();
 
@@ -52,8 +54,7 @@ public class SectionGenerationService : ISectionGenerationService
             .Replace("{tool_name}", context.Tool.Name)
             .Replace("{tool_purpose}", context.Tool.Purpose)
             .Replace("{tool_category}", context.Tool.Category)
-            .Replace("{user_base}", context.Tool.TypicalUserBase)
-            .Replace("{previous_sections}", previousSectionsHtml);
+            .Replace("{user_base}", context.Tool.TypicalUserBase);
 
         var modelSettings = _config.Models["SectionGenerationModel"];
 
@@ -78,7 +79,7 @@ public class SectionGenerationService : ISectionGenerationService
         };
     }
 
-    private static string BuildPreviousSectionsHtmlContext(List<TocSection> tocTopLevelSections)
+    private static string BuildPreviousSectionsHtmlContext(List<TocSectionNested> tocTopLevelSections)
     {
         if (tocTopLevelSections.All(topLevelSection => topLevelSection.GeneratedSection is null))
         {
@@ -96,7 +97,7 @@ public class SectionGenerationService : ISectionGenerationService
         return stringBuilder.ToString();
     }
 
-    private static void BuildPreviousSubSections(StringBuilder stringBuilder, TocSection tocSection)
+    private static void BuildPreviousSubSections(StringBuilder stringBuilder, TocSectionNested tocSection)
     {
         if (tocSection.GeneratedSection is null)
         {

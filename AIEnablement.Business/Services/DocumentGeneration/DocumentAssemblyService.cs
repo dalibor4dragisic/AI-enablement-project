@@ -12,7 +12,7 @@ public class DocumentAssemblyService : IDocumentAssemblyService
 
     }
 
-    public string AssembleDocument(DocumentGenerationContext context, TocSection tocSection, bool shouldAddMetadata)
+    public string AssembleDocument(DocumentGenerationContext context, TocSectionNested tocSection, bool shouldAddMetadata)
     {
         var sb = new StringBuilder();
         
@@ -67,9 +67,9 @@ public class DocumentAssemblyService : IDocumentAssemblyService
         return html;
     }
 
-    private static List<TocSection> GetAllHtmlSections(TocSection tocSection)
+    private static List<TocSectionNested> GetAllHtmlSections(TocSectionNested tocSection)
     {
-        var sections = new List<TocSection> { tocSection };
+        var sections = new List<TocSectionNested> { tocSection };
 
         foreach (var subSection in tocSection.Subsections)
         {

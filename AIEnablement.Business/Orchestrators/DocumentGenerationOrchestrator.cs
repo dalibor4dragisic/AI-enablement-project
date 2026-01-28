@@ -1,8 +1,8 @@
-using System.Text;
 using AIEnablement.Core.Interfaces.DocumentGeneration;
 using AIEnablement.Core.Models;
 using AIEnablement.Core.Models.DocumentGeneration;
 using Microsoft.Extensions.Logging;
+using System.Text;
 using System.Text.Json;
 
 namespace AIEnablement.Business.Orchestrators;
@@ -15,6 +15,7 @@ public class DocumentGenerationOrchestrator
     private readonly IDocumentAssemblyService _documentAssemblyService;
     private readonly AppConfiguration _config;
     private readonly ILogger<DocumentGenerationOrchestrator> _logger;
+    private readonly Random _random = new();
 
     public DocumentGenerationOrchestrator(
         IToolIdeationService toolIdeationService,
@@ -82,8 +83,12 @@ public class DocumentGenerationOrchestrator
     private async Task GenerateTocAsync(ToolDescription tool, string outputDir)
     {
         // Generate ToC structure
-        var toc = await _tocGenerationService.GenerateTocAsync(tool);
-        
+        var tocFlatten = await _tocGenerationService.GenerateTocAsync(tool);
+
+        var toc = ConvertToNested(tocFlatten);
+
+        AssignTextIssueToRandomSections(toc.Sections);
+
         //// Save ToC as JSON file
         //var tocFileName = $"toc_{SanitizeFileName(tool.Name)}.json";
         //var tocPath = Path.Combine(outputDir, tocFileName);
@@ -102,9 +107,9 @@ public class DocumentGenerationOrchestrator
 
         await GenerateSectionsRecursivelyAsync(context, toc.Sections, outputDir);
 
-        // Write tool content to file
-        var documentContext = JsonSerializer.Serialize(context, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(Path.Combine(outputDir, $"tool_{SanitizeFileName(tool.Name)}.json"), documentContext);
+        //// Write tool content to file
+        //var documentContext = JsonSerializer.Serialize(context, new JsonSerializerOptions { WriteIndented = true });
+        //await File.WriteAllTextAsync(Path.Combine(outputDir, $"tool_{SanitizeFileName(tool.Name)}.json"), documentContext);
 
         // Write injected issues to file
         var issues = CreateStringWithIssues(context.Toc.Sections);
@@ -115,7 +120,7 @@ public class DocumentGenerationOrchestrator
         }
     }
 
-    private async Task GenerateSectionsRecursivelyAsync(DocumentGenerationContext documentContext, List<TocSection> tocSections, string outputDir)
+    private async Task GenerateSectionsRecursivelyAsync(DocumentGenerationContext documentContext, List<TocSectionNested> tocSections, string outputDir)
     {
         foreach (var tocSection in tocSections)
         {
@@ -137,7 +142,97 @@ public class DocumentGenerationOrchestrator
         }
     }
 
-    private async Task SaveTocTopLevelSection(TocSection tocSection, string outputDir)
+    private void AssignTextIssueToRandomSections(List<TocSectionNested> topLevelSections)
+    {
+        foreach (var topLevelSection in topLevelSections)
+        {
+            var allSections = new List<TocSectionNested>();
+            allSections.Add(topLevelSection);
+
+            AddAllSubsections(topLevelSection.Subsections, allSections);
+
+            var numberOfRequiredIssues = _random.Next(
+                _config.DataQuality.MinIssuesPerDocument,
+                _config.DataQuality.MaxIssuesPerDocument + 1);
+
+            topLevelSection.NumberOfRequiredIssues = numberOfRequiredIssues;
+
+            var allTocSections = allSections.ToArray();
+            _random.Shuffle(allTocSections);
+
+            var numberOfRandomizedSectionsToTake =
+                numberOfRequiredIssues > allTocSections.Length ? allTocSections.Length : numberOfRequiredIssues;
+            var tocSectionIssueCandidates = allTocSections.Take(numberOfRandomizedSectionsToTake);
+
+            foreach (var section in tocSectionIssueCandidates)
+            {
+                section.ShouldHaveIssue = true;
+            }
+
+            _logger.LogInformation("Marked {Number} issue candidates for top-level section {Section}.",
+                numberOfRandomizedSectionsToTake, topLevelSection.Title);
+        }
+    }
+
+    public TableOfContentsNested ConvertToNested(TableOfContents flatContent)
+    {
+        var sectionDict = flatContent.Sections.ToDictionary(tocSection => tocSection.Id);
+        var roots = new List<TocSectionNested>();
+
+        foreach (var section in flatContent.Sections)
+        {
+            var nested = new TocSectionNested
+            {
+                Id = section.Id,
+                Title = section.Title,
+                Level = section.Level,
+                Subsections = new List<TocSectionNested>()
+            };
+
+            if (section.ParentId == null)
+            {
+                roots.Add(nested);
+            }
+            else if (sectionDict.ContainsKey(section.ParentId))
+            {
+                // Find parent in already converted sections
+                var parent = FindSectionById(roots, section.ParentId);
+                parent?.Subsections.Add(nested);
+            }
+        }
+
+        return new TableOfContentsNested
+        {
+            Title = flatContent.Title,
+            Sections = roots
+        };
+    }
+
+    private TocSectionNested? FindSectionById(List<TocSectionNested> sections, string id)
+    {
+        foreach (var section in sections)
+        {
+            if (section.Id == id) return section;
+            var found = FindSectionById(section.Subsections, id);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private void AddAllSubsections(List<TocSectionNested> subSections, List<TocSectionNested> allSections)
+    {
+        foreach (var subSection in subSections)
+        {
+            allSections.Add(subSection);
+
+            if (subSection.Subsections.Any())
+            {
+                AddAllSubsections(subSection.Subsections, allSections);
+            }
+        }
+    }
+
+    private async Task SaveTocTopLevelSection(TocSectionNested tocSection, string outputDir)
     {
         var sectionTitle = SanitizeFileName(tocSection.Title);
         var tocFileName = $"toc_{sectionTitle}.json";
@@ -150,8 +245,8 @@ public class DocumentGenerationOrchestrator
     }
 
     private async Task SaveHtmlTopLevelSection(DocumentGenerationContext documentContext,
-        List<TocSection> tocSections,
-        TocSection tocSection,
+        List<TocSectionNested> tocSections,
+        TocSectionNested tocSection,
         string outputDir)
     {
         var sectionIndex = tocSections.IndexOf(tocSection);
@@ -166,7 +261,7 @@ public class DocumentGenerationOrchestrator
             tocSection.Title, htmlFileName);
     }
 
-    private string CreateStringWithIssues(List<TocSection> sections)
+    private string CreateStringWithIssues(List<TocSectionNested> sections)
     {
         var stringBuilder = new StringBuilder();
 
@@ -175,7 +270,7 @@ public class DocumentGenerationOrchestrator
         return stringBuilder.ToString();
     }
 
-    private void GetAllIssues(List<TocSection> sections, StringBuilder stringBuilder)
+    private void GetAllIssues(List<TocSectionNested> sections, StringBuilder stringBuilder)
     {
         foreach (var section in sections)
         {
@@ -206,6 +301,17 @@ public class DocumentGenerationOrchestrator
 
         var invalid = Path.GetInvalidFileNameChars();
         var sanitized = string.Join("_", fileName.Split(invalid, StringSplitOptions.RemoveEmptyEntries));
+
+        if (char.IsDigit(sanitized[0]))
+        {
+            int firstSpaceIndex = sanitized.IndexOf(' ');
+
+            if (firstSpaceIndex >= 0)
+            {
+                sanitized = sanitized.Substring(firstSpaceIndex + 1);
+            }
+        }
+
         return sanitized.ToLowerInvariant().Replace(" ", "_").Replace(".", "");
     }
 }
