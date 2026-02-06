@@ -1,14 +1,5 @@
 ﻿namespace AIEnablement.Core.Models.Chatbot;
 
-public class ChatMessage
-{
-    public string Role { get; set; } = string.Empty; // "system", "user", "assistant", "tool"
-    public string Content { get; set; } = string.Empty;
-    public DateTime Timestamp { get; set; }
-    public string? ToolCallId { get; set; }
-    public string? ToolName { get; set; }
-}
-
 public class ConversationSummary
 {
     public int SystemMessages { get; set; }
