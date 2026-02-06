@@ -44,11 +44,6 @@ public class ChatManager : IChatManager
         });
     }
 
-    public List<ChatContent> GetChatHistory()
-    {
-        return _messages;
-    }
-
     public ConversationSummary GetSummary()
     {
         var userMessages = _messages.Count(chatContent => chatContent.Role == ChatRole.User);
@@ -68,9 +63,9 @@ public class ChatManager : IChatManager
         };
     }
 
-    public List<ChatContent> GetAllMessages()
+    public IReadOnlyCollection<ChatContent> GetAllMessages()
     {
-        return new List<ChatContent>(_messages);
+        return _messages;
     }
 
     public void TrimHistory()

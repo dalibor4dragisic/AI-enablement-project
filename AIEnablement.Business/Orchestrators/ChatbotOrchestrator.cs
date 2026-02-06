@@ -95,8 +95,8 @@ public class ChatbotOrchestrator
                 var thinkingTask = AnimateThinking();
 
                 // Get response
-                var chatHistory = _chatManager.GetChatHistory();
-                var response = await _chatService.GetResponseAsync(chatHistory);
+                var chatHistory = _chatManager.GetAllMessages();
+                var response = await _chatService.GetResponseAsync(chatHistory.ToList());
 
                 // Stop animation
                 await thinkingTask.DisposeAsync();
