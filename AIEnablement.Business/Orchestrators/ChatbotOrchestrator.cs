@@ -1,5 +1,4 @@
 ﻿using AIEnablement.Core.Interfaces.Chatbot;
-using AIEnablement.Core.Interfaces.Infrastructure;
 using AIEnablement.Core.Models.Chatbot;
 using Microsoft.Extensions.Logging;
 
@@ -8,21 +7,15 @@ namespace AIEnablement.Business.Orchestrators;
 public class ChatbotOrchestrator
 {
     private readonly ILLMChatService _chatService;
-    private readonly IChatManager _chatManager;
-    private readonly IPromptService _promptService;
     private readonly ChatbotConfiguration _config;
     private readonly ILogger<ChatbotOrchestrator> _logger;
 
     public ChatbotOrchestrator(
         ILLMChatService chatService,
-        IChatManager chatManager,
-        IPromptService promptService,
         ChatbotConfiguration config,
         ILogger<ChatbotOrchestrator> logger)
     {
         _chatService = chatService;
-        _chatManager = chatManager;
-        _promptService = promptService;
         _config = config;
         _logger = logger;
     }
@@ -53,9 +46,6 @@ public class ChatbotOrchestrator
 
     private void InitializeConversation()
     {
-        var systemPrompt = LoadSystemPrompt();
-        _chatManager.AddSystemMessage(systemPrompt);
-
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"{_config.Assistant.Name}: Hello! How can I help you today?");
         Console.ResetColor();
@@ -78,15 +68,14 @@ public class ChatbotOrchestrator
             // Handle special commands
             if (userInput.StartsWith('/'))
             {
-                if (!HandleCommand(userInput))
+                var isHandled = await HandleCommand(userInput);
+
+                if (!isHandled)
                     break;
                 continue;
             }
 
             // Process user message
-            _chatManager.AddUserMessage(userInput);
-            _chatManager.TrimHistory();
-
             try
             {
                 // Show thinking indicator
@@ -95,8 +84,7 @@ public class ChatbotOrchestrator
                 var thinkingTask = AnimateThinking();
 
                 // Get response
-                var chatHistory = _chatManager.GetAllMessages();
-                var response = await _chatService.GetResponseAsync(chatHistory.ToList());
+                var response = await _chatService.GetResponseAsync(userInput);
 
                 // Stop animation
                 await thinkingTask.DisposeAsync();
@@ -104,8 +92,6 @@ public class ChatbotOrchestrator
                 Console.ResetColor();
 
                 // Display response
-                _chatManager.AddAssistantMessage(response);
-
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"{_config.Assistant.Name}: {response}");
                 Console.ResetColor();
@@ -122,7 +108,7 @@ public class ChatbotOrchestrator
         }
     }
 
-    private bool HandleCommand(string command)
+    private async Task<bool> HandleCommand(string command)
     {
         switch (command.ToLower())
         {
@@ -133,7 +119,7 @@ public class ChatbotOrchestrator
                 return false;
 
             case "/summary":
-                DisplaySummary();
+                await DisplaySummary();
                 return true;
 
             case "/history":
@@ -154,9 +140,9 @@ public class ChatbotOrchestrator
         }
     }
 
-    private void DisplaySummary()
+    private async Task DisplaySummary()
     {
-        var summary = _chatManager.GetSummary();
+        var summary = await _chatService.GetSummary();
 
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("\n--- Conversation Summary ---");
@@ -166,8 +152,10 @@ public class ChatbotOrchestrator
         Console.WriteLine($"    • System Messages: {summary.SystemMessages}");
         Console.WriteLine($"    • Your Messages: {summary.UserMessages}");
         Console.WriteLine($"    • Assistant Messages: {summary.AssistantMessages}");
-        Console.WriteLine($"    • GetCurrentDate Calls: {summary.GetCurrentDateToolCalls}");
-        Console.WriteLine($"    • AddDaysToDate Calls: {summary.AddDaysToDateToolCalls}");
+        Console.WriteLine($"    • Tool GetCurrentDate Calls: {summary.GetCurrentDateToolCalls}");
+        Console.WriteLine($"    • Tool AddDaysToDate Calls: {summary.AddDaysToDateToolCalls}");
+        //Console.WriteLine("Summary text:");
+        Console.WriteLine($"{summary.SummaryText}");
         Console.WriteLine("------------------------------");
         Console.ResetColor();
         Console.WriteLine();
@@ -175,7 +163,7 @@ public class ChatbotOrchestrator
 
     private void DisplayHistory()
     {
-        var messages = _chatManager.GetAllMessages();
+        var messages = _chatService.GetAllMessages();
 
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("\n--- Conversation History ---");
@@ -193,7 +181,12 @@ public class ChatbotOrchestrator
                     break;
                 case ChatRole.Assistant:
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"[{timestamp}] {_config.Assistant.Name}: {msg.Content}");
+                    var assistantTImeStamp = messages.ToList().IndexOf(msg) == 0 ? null : timestamp;
+                    Console.WriteLine($"[{assistantTImeStamp}] {_config.Assistant.Name}: {msg.Content}");
+                    break;
+                case ChatRole.Tool:
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.WriteLine($"[{timestamp}] Tool: {msg.Content}");
                     break;
             }
         }
@@ -203,12 +196,6 @@ public class ChatbotOrchestrator
         Console.WriteLine("-------------------------------");
         Console.ResetColor();
         Console.WriteLine();
-    }
-
-    private string LoadSystemPrompt()
-    {
-        var data = _promptService.LoadPromptFromFile(_config.Assistant.PersonalityPromptPath);
-        return data["system_prompt"];
     }
 
     private Timer AnimateThinking()

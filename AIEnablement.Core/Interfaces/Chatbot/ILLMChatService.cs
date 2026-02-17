@@ -4,5 +4,7 @@ namespace AIEnablement.Core.Interfaces.Chatbot;
 
 public interface ILLMChatService
 {
-    Task<string> GetResponseAsync(List<ChatContent> chatHistoryContent);
+    Task<string> GetResponseAsync(string message);
+    Task<ConversationSummary> GetSummary();
+    IReadOnlyCollection<ChatContent> GetAllMessages();
 }

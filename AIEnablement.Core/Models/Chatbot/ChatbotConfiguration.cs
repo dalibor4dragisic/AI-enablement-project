@@ -42,6 +42,7 @@ public class AssistantSettings
 {
     public string Name { get; set; } = string.Empty;
     public string PersonalityPromptPath { get; set; } = string.Empty;
+    public string SummaryPreservePromptPath { get; set; } = string.Empty;
     public bool EnableTools { get; set; }
     public int MaxHistoryMessages { get; set; }
 }

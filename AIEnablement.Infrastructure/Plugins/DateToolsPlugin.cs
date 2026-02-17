@@ -1,16 +1,13 @@
 ﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
-using AIEnablement.Core.Interfaces.Chatbot;
 
 namespace AIEnablement.Infrastructure.Plugins;
 
 public class DateToolsPlugin
 {
-    private readonly IChatManager _conversationManager;
-
-    public DateToolsPlugin(IChatManager conversationManager)
+    public DateToolsPlugin()
     {
-        _conversationManager = conversationManager;
+
     }
 
     [KernelFunction("get_current_date")]
@@ -18,8 +15,10 @@ public class DateToolsPlugin
     public string GetCurrentDate()
     {
         var now = DateTime.Now;
-        _conversationManager.IncrementGetCurrentDatePluginCall();
-        return now.ToString("MMMM d, yyyy (dddd)");
+
+        var result = now.ToString("MMMM d, yyyy (dddd)");
+
+        return result;
     }
 
     [KernelFunction("add_days_to_date")]
@@ -42,9 +41,9 @@ public class DateToolsPlugin
             return $"Error: Could not parse date '{startDate}'. Please use format like 'yyyy-MM-dd' or 'MMMM d, yyyy'.";
         }
 
-        _conversationManager.IncrementAddDaysToDatePluginCall();
-
         var resultDate = date.AddDays(days);
-        return resultDate.ToString("MMMM d, yyyy (dddd)");
+        var result = resultDate.ToString("MMMM d, yyyy (dddd)");
+
+        return result;
     }
 }

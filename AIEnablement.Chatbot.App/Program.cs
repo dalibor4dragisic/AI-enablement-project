@@ -1,5 +1,4 @@
 ﻿using AIEnablement.Business.Orchestrators;
-using AIEnablement.Business.Services.Chatbot;
 using AIEnablement.Core.Interfaces.Chatbot;
 using AIEnablement.Core.Interfaces.Infrastructure;
 using AIEnablement.Core.Models.Chatbot;
@@ -22,7 +21,6 @@ internal class Program
                 services.AddSingleton(config);
 
                 services.AddSingleton<ILLMChatService, LLMChatService>();
-                services.AddSingleton<IChatManager, ChatManager>();
                 services.AddSingleton<IPromptService, PromptService>();
                 services.AddSingleton<DateToolsPlugin>();
                 services.AddSingleton<ChatbotOrchestrator>();
