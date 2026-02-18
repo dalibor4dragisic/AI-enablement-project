@@ -16,8 +16,8 @@ public class LLMChatService : ILLMChatService
     private readonly ChatbotConfiguration _config;
     private readonly ILogger<LLMChatService> _logger;
     private readonly IPromptService _promptService;
-    private ChatHistory _chatHistory = new();
-    private Dictionary<ChatMessageContent, DateTime> _chatMessagesDates = new();
+    private readonly ChatHistory _chatHistory = new();
+    private readonly Dictionary<ChatMessageContent, DateTime> _chatMessagesDates = new();
     private readonly DateTime _conversationStarted;
 
     public LLMChatService(
@@ -71,7 +71,7 @@ public class LLMChatService : ILLMChatService
         {
             _chatHistory.AddUserMessage(message);
 
-            RecreateMessageTimeStamps();
+            RefreshMessageTimeStamps();
 
             var result = await chatCompletion.GetChatMessageContentAsync(
                 _chatHistory,
@@ -81,7 +81,7 @@ public class LLMChatService : ILLMChatService
 
             _chatHistory.Add(result);
 
-            RecreateMessageTimeStamps();
+            RefreshMessageTimeStamps();
 
             return result.Content ?? throw new InvalidOperationException("LLM returned null content");
         }
@@ -226,7 +226,7 @@ public class LLMChatService : ILLMChatService
 
         _chatHistory.AddRange(recentMessages);
 
-        RecreateMessageTimeStamps();
+        RefreshMessageTimeStamps();
     }
 
     private Dictionary<int, List<ChatMessageContent>> GetGroupedMessages(IReadOnlyCollection<ChatMessageContent> chatMessages)
@@ -388,7 +388,7 @@ public class LLMChatService : ILLMChatService
         }
     }
 
-    private void RecreateMessageTimeStamps()
+    private void RefreshMessageTimeStamps()
     {
         var messages = _chatHistory.Where(chat => !_chatMessagesDates.Keys.Contains(chat));
         foreach (var message in messages)
