@@ -1,9 +1,8 @@
 ﻿using AIEnablement.Core.Models.SemanticSearch;
 
-namespace AIEnablement.Core.Interfaces.SemanticSearch
+namespace AIEnablement.Core.Interfaces.SemanticSearch;
+
+public interface IChunkingService
 {
-    public interface IChunkingService
-    {
-        List<TextChunk> ChunkDocument(ParsedDocument document);
-    }
+    List<TextChunk> ChunkDocument(ParsedDocument document);
 }

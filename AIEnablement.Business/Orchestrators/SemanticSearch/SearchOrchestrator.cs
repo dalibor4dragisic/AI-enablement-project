@@ -32,13 +32,13 @@ namespace AIEnablement.Business.Orchestrators.SemanticSearch
             Console.WriteLine("-----------------------------------------------------------");
             Console.WriteLine();
 
-            // Load vector store
-            Console.WriteLine("📂 Loading vector store...");
+            //Load vector store
+            Console.WriteLine("Loading vector store...");
             await _vectorStoreService.LoadFromDiskAsync();
 
             // Load chunk metadata for neighbor expansion
-            await LoadChunkMetadataAsync();
-            Console.WriteLine("   ✓ Vector store loaded");
+            LoadChunkMetadataAsync();
+            Console.WriteLine("Vector store loaded");
             Console.WriteLine();
 
             Console.WriteLine("Configuration:");
@@ -84,7 +84,7 @@ namespace AIEnablement.Business.Orchestrators.SemanticSearch
                 {
                     Console.WriteLine();
                     Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.WriteLine("🔍 Searching...");
+                    Console.WriteLine("Searching...");
                     Console.ResetColor();
 
                     var response = await _searchService.SearchAsync(query);
@@ -95,7 +95,7 @@ namespace AIEnablement.Business.Orchestrators.SemanticSearch
                 {
                     _logger.LogError(ex, "Error during search");
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"❌ Error: {ex.Message}");
+                    Console.WriteLine($"Error: {ex.Message}");
                     Console.ResetColor();
                 }
 
@@ -150,7 +150,6 @@ namespace AIEnablement.Business.Orchestrators.SemanticSearch
                         if (neighbor.ChunkIndex < result.Chunk.ChunkIndex)
                         {
                             Console.WriteLine($"  │ [Before - Chunk {neighbor.ChunkIndex}]");
-                            //DisplayChunkContent(neighbor.Content, "  │ ", 150);
                             Console.WriteLine(neighbor.Content);
                             Console.WriteLine("  │");
                         }
@@ -159,7 +158,6 @@ namespace AIEnablement.Business.Orchestrators.SemanticSearch
 
                     Console.ForegroundColor = ConsoleColor.White;
                     Console.WriteLine($"  │ [MATCHED - Chunk {result.Chunk.ChunkIndex}]");
-                    //DisplayChunkContent(result.Chunk.Content, "  │ ", 300);
                     Console.WriteLine(result.Chunk.Content);
                     Console.ResetColor();
 
@@ -170,7 +168,6 @@ namespace AIEnablement.Business.Orchestrators.SemanticSearch
                         {
                             Console.WriteLine("  │");
                             Console.WriteLine($"  │ [After - Chunk {neighbor.ChunkIndex}]");
-                            //DisplayChunkContent(neighbor.Content, "  │ ", 150);
                             Console.WriteLine(neighbor.Content);
                         }
                     }
@@ -182,7 +179,6 @@ namespace AIEnablement.Business.Orchestrators.SemanticSearch
                 {
                     Console.ForegroundColor = ConsoleColor.White;
                     Console.WriteLine("  Content:");
-                    //DisplayChunkContent(result.Chunk.Content, "    ", 500);
                     Console.WriteLine(result.Chunk.Content);
                     Console.ResetColor();
                 }
@@ -191,56 +187,6 @@ namespace AIEnablement.Business.Orchestrators.SemanticSearch
                 Console.WriteLine("───────────────────────────────────────────────────────────");
                 Console.WriteLine();
             }
-        }
-
-        private void DisplayChunkContent(string content, string prefix, int maxLength)
-        {
-            var lines = WrapText(content, 80);
-            var displayedLength = 0;
-
-            foreach (var line in lines)
-            {
-                if (displayedLength + line.Length > maxLength)
-                {
-                    var remaining = maxLength - displayedLength;
-                    if (remaining > 0)
-                    {
-                        Console.WriteLine($"{prefix}{line.Substring(0, remaining)}...");
-                    }
-                    break;
-                }
-
-                Console.WriteLine($"{prefix}{line}");
-                displayedLength += line.Length;
-            }
-        }
-
-        private List<string> WrapText(string text, int maxWidth)
-        {
-            var lines = new List<string>();
-            var words = text.Split(' ');
-            var currentLine = "";
-
-            foreach (var word in words)
-            {
-                if ((currentLine + word).Length > maxWidth)
-                {
-                    if (!string.IsNullOrEmpty(currentLine))
-                    {
-                        lines.Add(currentLine.Trim());
-                        currentLine = "";
-                    }
-                }
-
-                currentLine += word + " ";
-            }
-
-            if (!string.IsNullOrEmpty(currentLine))
-            {
-                lines.Add(currentLine.Trim());
-            }
-
-            return lines;
         }
 
         private void DisplayConfiguration()
@@ -263,58 +209,11 @@ namespace AIEnablement.Business.Orchestrators.SemanticSearch
             Console.WriteLine();
         }
 
-        private async Task LoadChunkMetadataAsync()
+        private void LoadChunkMetadataAsync()
         {
-            //var metadataPath = Path.Combine(_config.Ingestion.VectorStoreDirectory, "chunk_metadata.json");
-
-            //if (!File.Exists(metadataPath))
-            //{
-            //    _logger.LogWarning("Chunk metadata not found, neighbor expansion may not work correctly");
-            //    return;
-            //}
-
-            //var json = await File.ReadAllTextAsync(metadataPath);
-            //var metadata = JsonSerializer.Deserialize<List<ChunkMetadata>>(json, new JsonSerializerOptions
-            //{
-            //    PropertyNameCaseInsensitive = true
-            //});
-
-            //if (metadata == null)
-            //    return;
-
-            //// Convert to TextChunks for neighbor lookup
-            //var chunks = metadata.Select(m => new TextChunk
-            //{
-            //    Id = m.Id,
-            //    ToolName = m.ToolName,
-            //    DocumentType = m.DocumentType,
-            //    FilePath = m.FilePath,
-            //    SectionHeading = m.SectionHeading,
-            //    ChunkIndex = m.ChunkIndex,
-            //    TokenCount = m.TokenCount,
-            //    Content = "" // Content will be loaded from vector store when needed
-            //}).ToList();
-
-            //// Pass to search service for neighbor lookup
-            //if (_searchService is SearchService semanticSearch)
-            //{
-            //    semanticSearch.IndexChunksForNeighborLookup(chunks);
-            //}
-
             var chunks = _vectorStoreService.GetChunks();
 
             _searchService.IndexChunksForNeighborLookup(chunks);
         }
-
-        //private class ChunkMetadata
-        //{
-        //    public string Id { get; set; } = string.Empty;
-        //    public string ToolName { get; set; } = string.Empty;
-        //    public string DocumentType { get; set; } = string.Empty;
-        //    public string FilePath { get; set; } = string.Empty;
-        //    public string SectionHeading { get; set; } = string.Empty;
-        //    public int ChunkIndex { get; set; }
-        //    public int TokenCount { get; set; }
-        //}
     }
 }

@@ -1,12 +1,11 @@
 ﻿using AIEnablement.Core.Interfaces.SemanticSearch;
 using AIEnablement.Core.Models.SemanticSearch;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.Extensions.VectorData;
 using Microsoft.SemanticKernel.Connectors.InMemory;
 using System.Text.Json;
 
-namespace AIEnablement.Business.Services.SemanticSearch
+namespace AIEnablement.Infrastructure.Services.SemanticSearch
 {
     public class VectorStoreService : IVectorStoreService
     {
@@ -15,7 +14,7 @@ namespace AIEnablement.Business.Services.SemanticSearch
         private readonly InMemoryVectorStore _vectorStore;
         private InMemoryCollection<string, VectorRecord>? _collection;
         private readonly List<VectorRecord> _localCache = new();
-        private readonly string _collectionName = "document_chunks";
+        private const string CollectionName = "document_chunks";
 
         public VectorStoreService(
             RagConfiguration config,
@@ -30,7 +29,7 @@ namespace AIEnablement.Business.Services.SemanticSearch
         {
             if (_collection == null)
             {
-                _collection = _vectorStore.GetCollection<string, VectorRecord>(_collectionName);
+                _collection = _vectorStore.GetCollection<string, VectorRecord>(CollectionName);
 
                 await _collection.EnsureCollectionExistsAsync();
             }
@@ -45,6 +44,7 @@ namespace AIEnablement.Business.Services.SemanticSearch
                 Content = chunk.Content,
                 ChunkIndex = chunk.ChunkIndex,
                 TokenCount = chunk.TokenCount,
+                SectionId = chunk.SectionId,
                 Embedding = chunk.Embedding
             }).ToList();
 
@@ -92,6 +92,7 @@ namespace AIEnablement.Business.Services.SemanticSearch
                         Content = result.Record.Content,
                         ChunkIndex = result.Record.ChunkIndex,
                         TokenCount = result.Record.TokenCount,
+                        SectionId = result.Record.SectionId,
                         Embedding = result.Record.Embedding
                     };
 
@@ -100,24 +101,6 @@ namespace AIEnablement.Business.Services.SemanticSearch
             }
 
             return results;
-        }
-
-        public async Task<TextChunk?> GetChunkByIndexAsync(string toolName, string documentType, int chunkIndex)
-        {
-            if (_collection == null)
-            {
-                _collection = _vectorStore.GetCollection<string, VectorRecord>(_collectionName);
-                //await _collection.CreateCollectionIfNotExistsAsync();
-            }
-
-            // Since InMemoryVectorStore doesn't support filtering, we need to scan
-            // In production, use a proper vector database with metadata filtering
-            var allRecords = new List<VectorRecord>();
-
-            // This is a workaround - in production use proper filtering
-            _logger.LogWarning("Scanning all records for neighbor lookup - consider using a vector DB with filtering");
-
-            return null; // Will implement neighbor expansion differently
         }
 
         public List<TextChunk> GetChunks()
@@ -131,7 +114,8 @@ namespace AIEnablement.Business.Services.SemanticSearch
                 SectionHeading = vectorRecord.SectionHeading,
                 ChunkIndex = vectorRecord.ChunkIndex,
                 Content = vectorRecord.Content,
-                TokenCount = vectorRecord.TokenCount
+                TokenCount = vectorRecord.TokenCount,
+                SectionId = vectorRecord.SectionId
             }).ToList();
 
             return chunks;
@@ -150,7 +134,6 @@ namespace AIEnablement.Business.Services.SemanticSearch
                 return;
             }
 
-            // Serialize all records
             var options = new JsonSerializerOptions
             {
                 WriteIndented = false
@@ -176,7 +159,7 @@ namespace AIEnablement.Business.Services.SemanticSearch
 
             _logger.LogInformation("Loading vector store from {Path}", filePath);
 
-            _collection = _vectorStore.GetCollection<string, VectorRecord>(_collectionName);
+            _collection = _vectorStore.GetCollection<string, VectorRecord>(CollectionName);
             await _collection.EnsureCollectionExistsAsync();
 
             List<VectorRecord>? records;
@@ -200,15 +183,13 @@ namespace AIEnablement.Business.Services.SemanticSearch
                 await _collection.UpsertAsync(record);
             }
 
-            ///
             //var chunks = GetChunks();
             //var options = new JsonSerializerOptions
             //{
             //    WriteIndented = true
             //};
-            //await using var stream1 = File.Create(Path.Combine(_config.Ingestion.VectorStoreDirectory, "vectorstore_chunks.json"));
+            //await using var stream1 = File.Create(Path.Combine(_config.Ingestion.VectorStoreDirectory, "chunks.json"));
             //await JsonSerializer.SerializeAsync(stream1, chunks, options);
-            ///
 
             _logger.LogInformation("Loaded {Count} vectors from disk", records.Count);
         }
@@ -232,6 +213,8 @@ namespace AIEnablement.Business.Services.SemanticSearch
         public int ChunkIndex { get; set; }
         [VectorStoreData]
         public int TokenCount { get; set; }
+        [VectorStoreData]
+        public string SectionId { get; set; } = string.Empty;
         [VectorStoreVector(1536)]
         public ReadOnlyMemory<float> Embedding { get; set; }
     }

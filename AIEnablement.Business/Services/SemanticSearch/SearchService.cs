@@ -39,7 +39,6 @@ namespace AIEnablement.Business.Services.SemanticSearch
                 _chunksByDocument[key].Add(chunk);
             }
 
-            // Sort by chunk index
             foreach (var key in _chunksByDocument.Keys)
             {
                 _chunksByDocument[key] = _chunksByDocument[key].OrderBy(c => c.ChunkIndex).ToList();
@@ -52,15 +51,13 @@ namespace AIEnablement.Business.Services.SemanticSearch
         {
             var stopwatch = Stopwatch.StartNew();
 
-            // Generate query embedding
             _logger.LogInformation("Generating embedding for query: {Query}", query);
             var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
 
-            // Perform vector search
             _logger.LogInformation("Searching for top {TopK} results", _config.Search.TopK);
             var searchResults = await _vectorStoreService.SearchAsync(queryEmbedding, _config.Search.TopK);
 
-            // Build results with neighbors if configured
+            //Build results with neighbors if configured
             var results = new List<SearchResult>();
 
             foreach (var (chunk, score) in searchResults)
@@ -75,7 +72,7 @@ namespace AIEnablement.Business.Services.SemanticSearch
                     NeighborChunks = new List<TextChunk>()
                 };
 
-                // Add neighbors if configured
+                //Add neighbors if configured
                 if (_config.Search.IncludeNeighbors)
                 {
                     result.NeighborChunks = GetNeighborChunks(chunk);
@@ -112,13 +109,13 @@ namespace AIEnablement.Business.Services.SemanticSearch
                 return neighbors;
             }
 
-            // Get neighbors before
+            //Get neighbors before
             for (int i = Math.Max(0, currentIndex - _config.Search.NeighborsBefore); i < currentIndex; i++)
             {
                 neighbors.Add(documentChunks[i]);
             }
 
-            // Get neighbors after
+            //Get neighbors after
             for (int i = currentIndex + 1; i <= Math.Min(documentChunks.Count - 1, currentIndex + _config.Search.NeighborsAfter); i++)
             {
                 neighbors.Add(documentChunks[i]);
