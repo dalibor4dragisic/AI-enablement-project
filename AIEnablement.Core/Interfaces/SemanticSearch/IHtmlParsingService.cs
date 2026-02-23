@@ -4,5 +4,5 @@ namespace AIEnablement.Core.Interfaces.SemanticSearch;
 
 public interface IHtmlParsingService
 {
-    Task<ParsedDocument> ParseHtmlDocument(string filePath);
+    ParsedDocument ParseHtmlDocument(string filePath);
 }

@@ -14,7 +14,6 @@
         public string Heading { get; set; } = string.Empty;
         public int Level { get; set; }
         public string Content { get; set; } = string.Empty;
-        public List<ParsedSection> Subsections { get; set; } = new();
     }
 
     public class ParsedDocument
@@ -33,6 +32,7 @@
         public string Content { get; set; } = string.Empty;
         public int ChunkIndex { get; set; }
         public int TokenCount { get; set; }
+        public string SectionId { get; set; } = string.Empty;
         public ReadOnlyMemory<float> Embedding { get; set; }
     }
 

@@ -48,9 +48,7 @@ public class ChunkingSettings
 {
     public int ChunkSize { get; set; }
     public int ChunkOverlap { get; set; }
-    public int MinChunkSize { get; set; }
-    public bool StructureAware { get; set; }
-    //public bool PreserveHeadings { get; set; }
+    public string TokenizerModel { get; set; } = string.Empty;
 }
 
 public class SearchSettings

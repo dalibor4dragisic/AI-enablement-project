@@ -4,7 +4,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 
-namespace AIEnablement.Business.Services.SemanticSearch
+namespace AIEnablement.Infrastructure.Services.SemanticSearch
 {
     public class EmbeddingService : IEmbeddingService
     {
@@ -52,7 +52,6 @@ namespace AIEnablement.Business.Services.SemanticSearch
         {
             var embeddings = new List<ReadOnlyMemory<float>>();
 
-            // Process in batches
             for (int i = 0; i < texts.Count; i += _config.Embedding.BatchSize)
             {
                 var batch = texts.Skip(i).Take(_config.Embedding.BatchSize).ToList();
@@ -72,7 +71,7 @@ namespace AIEnablement.Business.Services.SemanticSearch
                     throw;
                 }
 
-                // Small delay to avoid rate limiting
+                //Delay to avoid rate limiting
                 if (i + _config.Embedding.BatchSize < texts.Count)
                 {
                     await Task.Delay(100);

@@ -2,6 +2,7 @@
 using AIEnablement.Business.Services.SemanticSearch;
 using AIEnablement.Core.Interfaces.SemanticSearch;
 using AIEnablement.Core.Models.SemanticSearch;
+using AIEnablement.Infrastructure.Services.SemanticSearch;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -35,22 +36,9 @@ public class Program
             })
             .Build();
 
-        //if (args.Length == 0 || args[0] == "--help")
-        //{
-        //    DisplayHelp();
-        //    return;
-        //}
-
         DisplayHelp();
 
         var command= Console.ReadLine()?.Trim();
-
-        //var ingestionOrchestrator = host.Services.GetRequiredService<IngestionOrchestrator>();
-        //await ingestionOrchestrator.IngestDocumentsAsync();
-
-        //var command = args[0].ToLower();
-
-        //var command = "search";//ingest;
 
         switch (command)
         {
