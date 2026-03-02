@@ -8,9 +8,11 @@ public class ConversationSummary
     public int AssistantMessages { get; set; }
     public int GetCurrentDateToolCalls { get; set; }
     public int AddDaysToDateToolCalls { get; set; }
+    public int SearchDocumentsToolCalls { get; set; }
     public string SummaryText { get; set; } = string.Empty;
     public DateTime ConversationStarted { get; set; }
     public TimeSpan Duration { get; set; }
+    public int EstimatedTokens { get; set; }
 }
 
 public class ChatContent
