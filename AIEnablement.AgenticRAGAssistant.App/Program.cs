@@ -22,27 +22,26 @@ class Program
         var host = Host.CreateDefaultBuilder(args)
             .ConfigureServices((context, services) =>
             {
-                var config = RagChatbotConfiguration.Load("appsettings.json");
+                const string settingsFile = "appsettings.json";
+
+                var config = RagChatbotConfiguration.Load(settingsFile);
                 services.AddSingleton(config);
 
-                var ragConfig = RagConfiguration.Load("appsettings.json");
+                var ragConfig = RagConfiguration.Load(settingsFile);
                 services.AddSingleton(ragConfig);
 
-                // RAG services (from Phase 3)
                 services.AddSingleton<IVectorStoreService, VectorStoreService>();
                 services.AddSingleton<IEmbeddingService, EmbeddingService>();
                 services.AddSingleton<ISearchService, SearchService>();
                 services.AddSingleton<IPromptService, PromptService>();
 
-                // Chatbot services
+                //Chatbot services
                 services.AddSingleton<IAgenticRAGChatService, AgenticRAGChatService>();
-                //services.AddSingleton<IConversationManager, ConversationManager>();
-                //services.AddSingleton<IConversationSummaryService, ConversationSummaryService>();
 
                 services.AddSingleton<DateToolsPlugin>();
                 services.AddSingleton<RetrievalToolPlugin>();
 
-                // Orchestrator
+                //Orchestrator
                 services.AddSingleton<RagChatbotOrchestrator>();
 
                 services.AddLogging(builder =>

@@ -4,6 +4,6 @@ namespace AIEnablement.Core.Interfaces.SemanticSearch;
 
 public interface ISearchService
 {
-    Task<SearchResponse> SearchAsync(string query);
+    Task<SearchResponse> SearchAsync(string query, int? topK = null);
     void IndexChunksForNeighborLookup(List<TextChunk> chunks);
 }
