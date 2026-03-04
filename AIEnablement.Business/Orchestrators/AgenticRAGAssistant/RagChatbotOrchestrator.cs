@@ -1,10 +1,9 @@
-﻿using AIEnablement.Core.Interfaces.AgenticRAGAssistant;
+﻿using AIEnablement.Business.Services.SemanticSearch;
+using AIEnablement.Core.Interfaces.AgenticRAGAssistant;
 using AIEnablement.Core.Interfaces.SemanticSearch;
 using AIEnablement.Core.Models.AgenticRAGAssistant;
 using AIEnablement.Core.Models.Chatbot;
 using Microsoft.Extensions.Logging;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
 {
@@ -12,21 +11,21 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
     public class RagChatbotOrchestrator
     {
         private readonly IAgenticRAGChatService _chatService;
-        //private readonly IConversationManager _conversationManager;
         private readonly IVectorStoreService _vectorStoreService;
+        private readonly ISearchService _searchService;
         private readonly RagChatbotConfiguration _config;
         private readonly ILogger<RagChatbotOrchestrator> _logger;
 
         public RagChatbotOrchestrator(
             IAgenticRAGChatService chatService,
-            //IConversationManager conversationManager,
             IVectorStoreService vectorStoreService,
+            ISearchService searchService,
             RagChatbotConfiguration config,
             ILogger<RagChatbotOrchestrator> logger)
         {
             _chatService = chatService;
-            //_conversationManager = conversationManager;
             _vectorStoreService = vectorStoreService;
+            _searchService = searchService;
             _config = config;
             _logger = logger;
         }
@@ -43,7 +42,7 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
             Console.Clear();
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("--------------------------------------------------------------");
-            Console.WriteLine($"  {_config.Assistant.Name,-54} Chatbot");
+            Console.WriteLine($"              Agentic RAG Assistant - Phase 4");
             Console.WriteLine("--------------------------------------------------------------");
             Console.ResetColor();
             Console.WriteLine();
@@ -65,6 +64,10 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
             try
             {
                 await _vectorStoreService.LoadFromDiskAsync();
+
+                //Load chunk metadata for neighbor expansion
+                LoadChunkMetadataAsync();
+
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("Vector store loaded successfully");
                 Console.ResetColor();
@@ -77,11 +80,6 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
                 Console.ResetColor();
                 Environment.Exit(1);
             }
-
-            // Load system prompt
-            //var systemPrompt = LoadSystemPrompt();
-            //var systemMessage = new ChatMessageContent(AuthorRole.System, systemPrompt);
-            //_conversationManager.AddMessage(systemMessage);
 
             Console.WriteLine();
             Console.ForegroundColor = ConsoleColor.Green;
@@ -103,7 +101,7 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
                 if (string.IsNullOrWhiteSpace(userInput))
                     continue;
 
-                // Handle commands
+                //Handle commands
                 if (userInput.StartsWith('/'))
                 {
                     if (!await HandleCommandAsync(userInput))
@@ -111,57 +109,20 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
                     continue;
                 }
 
-                // Add user message
-                //var userMessage = new ChatMessageContent(AuthorRole.User, userInput);
-                //_conversationManager.AddMessage(userMessage);
-
-                // Check if summarization needed
-                //await _conversationManager.CheckAndSummarizeIfNeededAsync();
-
                 try
                 {
-                    // Show thinking indicator
+                    //Show thinking indicator
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.Write($"\n{_config.Assistant.Name} is thinking");
                     var thinkingTask = AnimateThinking();
 
-                    // Get response
-                    //var chatHistory = _conversationManager.GetChatHistory();
+                    //Get response
                     var response = await _chatService.GetResponseAsync(userInput);
 
-                    // Stop animation
+                    //Stop animation
                     thinkingTask.Dispose();
                     Console.Write("\r" + new string(' ', 50) + "\r");
                     Console.ResetColor();
-
-                    // Save all messages (including tool calls)
-                    //foreach (var response in responses)
-                    //{
-                    //    _conversationManager.AddMessage(response);
-                    //}
-
-                    // Display final assistant message
-                    //var finalResponse = responses
-                    //    .LastOrDefault(r => r.Role == AuthorRole.Assistant && !string.IsNullOrEmpty(r.Content));
-
-                    //if (finalResponse != null)
-                    //{
-                    //    Console.ForegroundColor = ConsoleColor.Green;
-                    //    Console.WriteLine($"{_config.Assistant.Name}: {finalResponse.Content}");
-                    //    Console.ResetColor();
-                    //}
-
-                    //// Show if retrieval was used
-                    //var toolCalls = responses
-                    //    .SelectMany(r => r.Items?.OfType<FunctionCallContent>() ?? Enumerable.Empty<FunctionCallContent>())
-                    //    .ToList();
-
-                    //if (toolCalls.Any(tc => tc.FunctionName == "search_documents"))
-                    //{
-                    //    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    //    Console.WriteLine("  📚 Retrieved information from documents");
-                    //    Console.ResetColor();
-                    //}
 
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine($"{_config.Assistant.Name}: {response}");
@@ -206,27 +167,12 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
 
                 default:
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Unknown command. Available: /summary, /stats, /clear, /exit");
+                    Console.WriteLine("Unknown command. Available: /summary, /history, /clear, /exit");
                     Console.ResetColor();
                     Console.WriteLine();
                     return true;
             }
         }
-
-        //private async Task DisplaySummaryAsync()
-        //{
-        //    Console.ForegroundColor = ConsoleColor.Cyan;
-        //    Console.WriteLine("\n╔═══ Conversation Summary ═══╗");
-        //    Console.ResetColor();
-
-        //    Console.WriteLine("\nGenerating summary...");
-        //    var summary = await _conversationManager.GenerateUserSummaryAsync();
-
-        //    Console.ForegroundColor = ConsoleColor.White;
-        //    Console.WriteLine($"\n{summary}\n");
-        //    Console.ResetColor();
-        //    Console.WriteLine();
-        //}
 
         private async Task DisplaySummaryAsync()
         {
@@ -248,7 +194,7 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
             var percentage = (double)stats.EstimatedTokens / _config.Model.MaxInputTokens * 100;
             Console.WriteLine($"  Usage: {percentage:F1}%");
 
-            if (percentage > 70)
+            if (percentage > _config.Assistant.SummarizationThreshold * 100)
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine("Approaching token limit - summarization will trigger soon");
@@ -281,8 +227,7 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
                         break;
                     case ChatRole.Assistant:
                         Console.ForegroundColor = ConsoleColor.Green;
-                        var assistantTImeStamp = messages.ToList().IndexOf(msg) == 0 ? null : timestamp;
-                        Console.WriteLine($"[{assistantTImeStamp}] {_config.Assistant.Name}: {msg.Content}");
+                        Console.WriteLine($"[{timestamp}] {_config.Assistant.Name}: {msg.Content}");
                         break;
                     case ChatRole.Tool:
                         Console.ForegroundColor = ConsoleColor.Blue;
@@ -298,17 +243,6 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
             Console.WriteLine();
         }
 
-        private string LoadSystemPrompt()
-        {
-            var yaml = File.ReadAllText(_config.Assistant.PersonalityPromptPath);
-            var deserializer = new DeserializerBuilder()
-                .WithNamingConvention(UnderscoredNamingConvention.Instance)
-                .Build();
-
-            var data = deserializer.Deserialize<Dictionary<string, string>>(yaml);
-            return data["system_prompt"];
-        }
-
         private Timer AnimateThinking()
         {
             int dots = 0;
@@ -318,6 +252,13 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
                 Console.Write("\r" + new string(' ', 50));
                 Console.Write($"\r{_config.Assistant.Name} is thinking" + new string('.', dots));
             }, null, 0, 500);
+        }
+
+        private void LoadChunkMetadataAsync()
+        {
+            var chunks = _vectorStoreService.GetChunks();
+
+            _searchService.IndexChunksForNeighborLookup(chunks);
         }
     }
 }

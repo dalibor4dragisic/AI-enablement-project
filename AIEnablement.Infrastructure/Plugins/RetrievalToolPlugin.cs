@@ -2,14 +2,8 @@
 using AIEnablement.Core.Models.AgenticRAGAssistant;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace AIEnablement.Infrastructure.Plugins
 {
@@ -17,18 +11,15 @@ namespace AIEnablement.Infrastructure.Plugins
     public class RetrievalToolPlugin
     {
         private readonly ISearchService _searchService;
-        //private readonly IEmbeddingService _embeddingService;
         private readonly RagChatbotConfiguration _config;
         private readonly ILogger<RetrievalToolPlugin> _logger;
 
         public RetrievalToolPlugin(
             ISearchService searchService,
-            //IEmbeddingService embeddingService,
             RagChatbotConfiguration config,
             ILogger<RetrievalToolPlugin> logger)
         {
             _searchService = searchService;
-            //_embeddingService = embeddingService;
             _config = config;
             _logger = logger;
         }
@@ -46,42 +37,22 @@ namespace AIEnablement.Infrastructure.Plugins
                      "Leave empty to search all documents.")]
         string? toolName = null,
 
-        //    [Description("Optional: Filter by document type (e.g., 'Privacy Policy', 'Terms of Service'). " +
-        //             "Leave empty to search all document types.")]
-        //string? documentType = null,
-
             [Description("Number of results to return (1-10). Default is 5.")]
         int topK = 5)
         {
-            //_logger.LogInformation("Retrieval tool called: query='{Query}', tool='{Tool}', docType='{DocType}', topK={TopK}",
-            //    query, toolName ?? "all", documentType ?? "all", topK);
-
-            _logger.LogInformation("Retrieval tool called: query='{Query}', tool='{Tool}', topK={TopK}",
-                query, toolName ?? "all", topK);
+            //_logger.LogInformation("Retrieval tool called: query='{Query}', tool='{Tool}', topK={TopK}",
+            //    query, toolName ?? "all", topK);
 
             try
             {
-                // Clamp topK
-                topK = Math.Clamp(topK, 1, _config.Retrieval.MaxChunksInContext);
+                topK = Math.Clamp(topK, 1, _config.Retrieval.MaxTopK);
 
-                // Generate query embedding
-                //var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
+                var searchResults = await _searchService.SearchAsync(query, topK * 2);// Get more, then filter
 
-                // Search vector store
-                //var searchResults = await _searchService.SearchAsync(
-                //    queryEmbedding,
-                //    topK * 2 // Get more, then filter
-                //);
-
-                var searchResults = await _searchService.SearchAsync(query);
-
-                // Apply filters
+                //Apply filters
                 var filteredResults = searchResults.Results
-                    .Where(r => r.RelevanceScore >= _config.Retrieval.MinRelevanceScore)
                     .Where(r => string.IsNullOrEmpty(toolName) ||
                                r.Chunk.ToolName.Replace("_", " ").Contains(toolName, StringComparison.OrdinalIgnoreCase))
-                    //.Where(r => string.IsNullOrEmpty(documentType) ||
-                    //           r.Chunk.DocumentType.Contains(documentType, StringComparison.OrdinalIgnoreCase))
                     .Take(topK)
                     .ToList();
 
@@ -91,11 +62,11 @@ namespace AIEnablement.Infrastructure.Plugins
                     {
                         success = false,
                         message = "No relevant documents found for this query.",
-                        results = new object[0]
+                        results = Array.Empty<object>()
                     });
                 }
 
-                // Format results for LLM
+                //Format results for LLM
                 var formattedResults = filteredResults.Select((r, index) => new
                 {
                     result_number = index + 1,
@@ -105,11 +76,10 @@ namespace AIEnablement.Infrastructure.Plugins
                         tool_name = r.Chunk.ToolName,
                         document_type = r.Chunk.DocumentType,
                         section_heading = r.Chunk.SectionHeading,
-                        //file_path = Path.GetFileName(r.Chunk.FilePath)
                         file_path = r.Chunk.FilePath
                     },
                     content = r.Chunk.Content,
-                    neighbor_context = _config.Retrieval.IncludeNeighbors && r.NeighborChunks.Any()
+                    neighbor_context = r.NeighborChunks.Any()
                         ? new
                         {
                             chunks_before = r.NeighborChunks
@@ -132,9 +102,9 @@ namespace AIEnablement.Infrastructure.Plugins
                     results = formattedResults
                 };
 
-                _logger.LogInformation("Retrieved {Count} results with avg score {AvgScore:F3}",
-                    filteredResults.Count,
-                    filteredResults.Average(r => r.RelevanceScore));
+                //_logger.LogInformation("Retrieved {Count} results with avg score {AvgScore:F3}",
+                //    filteredResults.Count,
+                //    filteredResults.Average(r => r.RelevanceScore));
 
                 return JsonSerializer.Serialize(response, new JsonSerializerOptions
                 {
@@ -149,7 +119,7 @@ namespace AIEnablement.Infrastructure.Plugins
                 {
                     success = false,
                     message = $"Error performing search: {ex.Message}",
-                    results = new object[0]
+                    results = Array.Empty<object>()
                 });
             }
         }

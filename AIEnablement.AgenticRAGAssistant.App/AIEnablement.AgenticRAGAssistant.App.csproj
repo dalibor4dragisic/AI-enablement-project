@@ -27,9 +27,6 @@
     <None Update="Prompts\chatbot_summary_preserve.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Prompts\chatbot_personality_1.yaml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

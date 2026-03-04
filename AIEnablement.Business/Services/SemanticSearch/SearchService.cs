@@ -47,15 +47,15 @@ namespace AIEnablement.Business.Services.SemanticSearch
             _logger.LogInformation("Indexed {Count} documents for neighbor lookup", _chunksByDocument.Count);
         }
 
-        public async Task<SearchResponse> SearchAsync(string query)
+        public async Task<SearchResponse> SearchAsync(string query, int? topK = null)
         {
             var stopwatch = Stopwatch.StartNew();
 
-            _logger.LogInformation("Generating embedding for query: {Query}", query);
+            //_logger.LogInformation("Generating embedding for query: {Query}", query);
             var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(query);
 
-            _logger.LogInformation("Searching for top {TopK} results", _config.Search.TopK);
-            var searchResults = await _vectorStoreService.SearchAsync(queryEmbedding, _config.Search.TopK);
+            //_logger.LogInformation("Searching for top {TopK} results", topK ?? _config.Search.TopK);
+            var searchResults = await _vectorStoreService.SearchAsync(queryEmbedding, topK ?? _config.Search.TopK);
 
             //Build results with neighbors if configured
             var results = new List<SearchResult>();

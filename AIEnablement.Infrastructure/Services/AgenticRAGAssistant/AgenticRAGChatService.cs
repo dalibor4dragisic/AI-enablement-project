@@ -8,7 +8,6 @@ using Microsoft.ML.Tokenizers;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using System.Text;
 
 namespace AIEnablement.Infrastructure.Services.AgenticRAGAssistant;
 
@@ -51,7 +50,6 @@ public class AgenticRAGChatService : IAgenticRAGChatService
             serviceId: config.Model.ModelLightId
         );
 
-        // Add plugins if tools are enabled
         if (config.Assistant.EnableTools && config.Tools["DateTools"].Enabled)
         {
             builder.Plugins.AddFromObject(dateToolsPlugin, "DateTools");
@@ -71,7 +69,6 @@ public class AgenticRAGChatService : IAgenticRAGChatService
 
     public async Task<string> GetResponseAsync(string message)
     {
-        //await TrimHistoryWithCompactionAsync();
         await CheckAndSummarizeIfNeededAsync();
 
         var chatCompletion = _kernel.GetRequiredService<IChatCompletionService>(_config.Model.ModelId);
@@ -131,7 +128,6 @@ public class AgenticRAGChatService : IAgenticRAGChatService
             {
                 if (item is FunctionResultContent functionResultContent)
                 {
-                    // The function name is available within the function call metadata
                     var functionName = functionResultContent.FunctionName;
 
                     if (functionName == getCurrentDate)
@@ -202,17 +198,10 @@ public class AgenticRAGChatService : IAgenticRAGChatService
             TopP = _config.Model.TopP
         };
 
-        //var chatContents = GetAllMessages(conversationHistory);
-        //var conversationText = GetConversationHistoryOld(chatContents);
-
         var promptData = _promptService.LoadPromptFromFile(_config.Assistant.PersonalityPromptPath);
-        //var systemPromptTemplate = promptData["system_prompt"];
         var userPromptTemplate = promptData["user_prompt"];
 
-        //var userPrompt = userPromptTemplate.Replace("{conversation_text}", conversationText);
-
         var chatHistory = new ChatHistory();
-        //chatHistory.AddSystemMessage(systemPromptTemplate);
         chatHistory.AddRange(conversationHistory);
         chatHistory.AddUserMessage(userPromptTemplate);
         
@@ -224,38 +213,6 @@ public class AgenticRAGChatService : IAgenticRAGChatService
 
         return result ?? throw new InvalidOperationException("LLM returned null content");
     }
-
-    //private async Task TrimHistoryWithCompactionAsync()
-    //{
-    //    var groupedMessages = GetGroupedMessages(_chatHistory);
-
-    //    if (groupedMessages.Count() < _config.Assistant.MaxHistoryMessages)
-    //    {
-    //        return;
-    //    }
-
-    //    var messagesToCompress = groupedMessages.Count() - (_config.Assistant.MaxHistoryMessages / 2);
-
-    //    var oldMessages = groupedMessages.Take(messagesToCompress).SelectMany(pair => pair.Value).ToList();
-    //    var recentMessages = groupedMessages.Skip(messagesToCompress).SelectMany(pair => pair.Value).ToList();
-
-    //    var result = await GetConversationSummaryPreserveAsync(oldMessages.ToArray());
-
-    //    var systemMessage = _chatHistory.FirstOrDefault(m => m.Role == AuthorRole.System);
-
-    //    _chatHistory.Clear();
-
-    //    if (systemMessage != null)
-    //    {
-    //        _chatHistory.Add(systemMessage);
-    //    }
-
-    //    _chatHistory.Add(result);
-
-    //    _chatHistory.AddRange(recentMessages);
-
-    //    RefreshMessageTimeStamps();
-    //}
 
     private Dictionary<int, List<ChatMessageContent>> GetGroupedMessages(IReadOnlyCollection<ChatMessageContent> chatMessages)
     {
@@ -287,13 +244,6 @@ public class AgenticRAGChatService : IAgenticRAGChatService
                     groupNumber++;
                 }
             }
-            //else if (chatMessage.Role == AuthorRole.Assistant
-            //         && chatMessage.Content != null
-            //         && chatMessages.ToList().IndexOf(chatMessage) == 1)
-            //{
-            //    messagesGroup.TryAdd(groupNumber, [chatMessage]);
-            //    groupNumber++;
-            //}
         }
 
         return messagesGroup;
@@ -391,18 +341,6 @@ public class AgenticRAGChatService : IAgenticRAGChatService
         return messages;
     }
 
-    private string GetConversationHistoryOld(IReadOnlyCollection<ChatContent> chatContents)
-    {
-        var sb = new StringBuilder();
-
-        foreach (var chatContent in chatContents)
-        {
-            sb.AppendLine($"{chatContent.Role}: {chatContent.Content}");
-        }
-
-        return sb.ToString();
-    }
-
     private void LoadSystemPrompt()
     {
         var data = _promptService.LoadPromptFromFile(_config.Assistant.PersonalityPromptPath);
@@ -435,24 +373,22 @@ public class AgenticRAGChatService : IAgenticRAGChatService
         }
     }
 
-
-
     public async Task CheckAndSummarizeIfNeededAsync()
     {
         var currentTokens = EstimateTokenCount();
         var maxTokens = _config.Model.MaxInputTokens;
         var threshold = maxTokens * _config.Assistant.SummarizationThreshold;
 
-        _logger.LogDebug("Current tokens: {Current}/{Max} (threshold: {Threshold})",
-            currentTokens, maxTokens, threshold);
+        //_logger.LogDebug("Current tokens: {Current}/{Max} (threshold: {Threshold})",
+        //    currentTokens, maxTokens, threshold);
 
         if (currentTokens < threshold)
         {
             return;
         }
 
-        _logger.LogInformation("Token count ({Current}) exceeds threshold ({Threshold}), performing summarization",
-            currentTokens, threshold);
+        //_logger.LogInformation("Token count ({Current}) exceeds threshold ({Threshold}), performing summarization",
+        //    currentTokens, threshold);
 
         await SummarizeAndCompactAsync();
     }
@@ -460,39 +396,32 @@ public class AgenticRAGChatService : IAgenticRAGChatService
 
     private async Task SummarizeAndCompactAsync()
     {
-        // Get all non-system messages
+        //Get all non-system messages
         var groupedMessages = GetGroupedMessages(_chatHistory);
 
-        var keepRecentCount = 3;
-
-        if (groupedMessages.Count <= keepRecentCount)
+        if (groupedMessages.Count <= _config.Assistant.KeepRecentCount)
         {
             _logger.LogWarning("Not enough messages to summarize");
             return;
         }
 
-        //var messagesToSummarize = allMessages.Take(allMessages.Count - keepRecentCount).ToList();
-        //var recentMessages = allMessages.Skip(messagesToSummarize.Count).ToList();
+        var oldMessages = groupedMessages.Take(groupedMessages.Count - _config.Assistant.KeepRecentCount).SelectMany(pair => pair.Value).ToList();
+        var recentMessages = groupedMessages.Skip(groupedMessages.Count - _config.Assistant.KeepRecentCount).SelectMany(pair => pair.Value).ToList();
 
-        var oldMessages = groupedMessages.Take(groupedMessages.Count - keepRecentCount).SelectMany(pair => pair.Value).ToList();
-        var recentMessages = groupedMessages.Skip(groupedMessages.Count - keepRecentCount).SelectMany(pair => pair.Value).ToList();
-
-        _logger.LogInformation("Summarizing {Old} messages, keeping {Recent} recent messages",
-            oldMessages.Count, recentMessages.Count);
+        //_logger.LogInformation("Summarizing {Old} messages, keeping {Recent} recent messages",
+        //    oldMessages.Count, recentMessages.Count);
 
         try
         {
             var systemMessage = _chatHistory.First(m => m.Role == AuthorRole.System);
 
-            // Generate summary
-            //var summary = await _summaryService.GenerateCompactionSummaryAsync(messagesToSummarize);
+            //Generate summary
             var summary = await GetConversationSummaryPreserveAsync(new[] { systemMessage }.Concat(oldMessages).ToArray());
             
-            // Rebuild chat history
+            //Rebuild chat history
             _chatHistory.Clear();
 
-            // Add original system message
-
+            //Add original system message
             var promptData = _promptService.LoadPromptFromFile(_config.Assistant.PersonalityPromptPath);
             var systemPromptTemplate = promptData["system_prompt"];
             var systemPrompt = systemPromptTemplate.Replace("{previous_summary_text}", summary.Content)
@@ -501,34 +430,9 @@ public class AgenticRAGChatService : IAgenticRAGChatService
 
             _chatHistory.Add(systemMessage);
 
-
-            //_chatHistory.Add(result);
-
             _chatHistory.AddRange(recentMessages);
 
             RefreshMessageTimeStamps();
-
-            // Add/update summary message
-            //var summaryContent = _summaryMessage != null
-            //    ? $"{_summaryMessage.Content}\n\n[Additional context]: {summary}"
-            //    : $"[Previous conversation context]: {summary}";
-
-            //_summaryMessage = new ChatMessageContent(
-            //    AuthorRole.System,
-            //    summaryContent
-            //);
-            //_chatHistory.Add(_summaryMessage);
-
-            //// Add recent messages
-            //foreach (var msg in recentMessages)
-            //{
-            //    _chatHistory.Add(msg);
-            //}
-
-            //var newTokens = EstimateTokenCount();
-            //_logger.LogInformation("Summarization complete. Tokens: {Old} → {New}",
-            //    EstimateTokenCount() + messagesToSummarize.Count * 100, // Rough estimate
-            //    newTokens);
         }
         catch (Exception ex)
         {
@@ -542,11 +446,11 @@ public class AgenticRAGChatService : IAgenticRAGChatService
 
         foreach (var message in _chatHistory)
         {
-            var content = message.Content ?? "";
+            var content = message.Content ?? string.Empty;
             var tokens = _tokenizer.EncodeToTokens(content, out _);
             total += tokens.Count;
 
-            // Add tokens for tool calls/results
+            //Add tokens for tool calls/results
             if (message.Items?.Any() == true)
             {
                 foreach (var item in message.Items)
