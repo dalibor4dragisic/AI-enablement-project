@@ -1,0 +1,56 @@
+system_prompt: |
+    You are an expert evaluator for RAG systems. 
+    Provide objective, accurate evaluations based on the criteria given. 
+    Always respond with valid JSON only, no additional text.    
+user_prompt: |
+    Evaluate the quality of the generated answer.
+
+    Query:
+    {golden_data_query}
+
+    Ground truth facts:
+    {required_facts}
+
+    Reference answer:
+    {reference_answer}
+
+    Retrieved context:
+    {tool_executions}
+
+    Generated answer:
+    {response_answer}
+
+    Perform the following evaluations:
+
+    1. Answer Relevancy
+    - Does the answer directly address the query?
+
+    2. Faithfulness
+    - Are all claims supported by the retrieved context?
+
+    3. Answer Correctness
+    - Is the answer factually correct compared to the reference answer and ground truth facts?
+
+    Return JSON:
+
+    {
+      "AnswerRelevancy": {
+        "Score": "relevancy score from 0.0 to 1.0",
+        "Reason": "text"
+      },
+      "Faithfulness": {
+        "SupportedClaims": number,
+        "TotalClaims": number,
+        "Score": "SupportedClaims / TotalClaims (0.0 to 1.0) (if TotalClaims = 0 return 0.0)",
+        "Hallucinations": [],
+        "Reason": "text"
+      },
+      "AnswerCorrectness": {
+        "Score": "score from 0.0 to 1.0",
+        "MissingInfo": [],
+        "IncorrectInfo": [],
+        "Reason": "text"
+      }
+    }
+
+    Respond ONLY with valid JSON.

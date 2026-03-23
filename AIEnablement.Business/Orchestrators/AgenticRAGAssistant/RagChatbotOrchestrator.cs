@@ -4,6 +4,7 @@ using AIEnablement.Core.Interfaces.SemanticSearch;
 using AIEnablement.Core.Models.AgenticRAGAssistant;
 using AIEnablement.Core.Models.Chatbot;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
 {
@@ -54,6 +55,7 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
             Console.WriteLine("  /history  - Show full conversation history");
             Console.WriteLine("  /clear    - Clear screen");
             Console.WriteLine("  /exit     - End conversation");
+            Console.WriteLine("  /save golden     - Save golden dataset");
             Console.WriteLine();
         }
 
@@ -165,6 +167,11 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
                     DisplayWelcomeBanner();
                     return true;
 
+                case "/save golden":
+                    Console.Clear();
+                    await SaveGoldenDataSetToDiskAsync();
+                    return true;
+
                 default:
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Unknown command. Available: /summary, /history, /clear, /exit");
@@ -259,6 +266,38 @@ namespace AIEnablement.Business.Orchestrators.AgenticRAGAssistant
             var chunks = _vectorStoreService.GetChunks();
 
             _searchService.IndexChunksForNeighborLookup(chunks);
+        }
+
+        private void GenerateGoldenDataset()
+        {
+            
+        }
+
+        private async Task SaveGoldenDataSetToDiskAsync()
+        {
+            var goldenDataset = _chatService.CreateGoldenDatasetFromHistory();
+
+            if (goldenDataset == null || !goldenDataset.Items.Any())
+            {
+                return;
+            }
+
+            var directory = "goldendataset";
+            Directory.CreateDirectory(directory);
+
+            var filePath = Path.Combine(directory, "golden_dataset.json");
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+
+            await using var stream = File.Create(filePath);
+            await JsonSerializer.SerializeAsync(stream, goldenDataset, options);
+
+            _logger.LogInformation("Golden dataset saved to {Path} ({Count} items)",
+                filePath,
+                goldenDataset.Items.Count);
         }
     }
 }

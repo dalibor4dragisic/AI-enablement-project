@@ -2,7 +2,9 @@
 using AIEnablement.Core.Interfaces.Infrastructure;
 using AIEnablement.Core.Models.AgenticRAGAssistant;
 using AIEnablement.Core.Models.Chatbot;
+using AIEnablement.Core.Models.EvaluationQualityMetrics;
 using AIEnablement.Infrastructure.Plugins;
+using AIEnablement.Infrastructure.Plugins.Filters;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML.Tokenizers;
 using Microsoft.SemanticKernel;
@@ -100,6 +102,63 @@ public class AgenticRAGChatService : IAgenticRAGChatService
             RefreshMessageTimeStamps();
 
             return result.Content ?? throw new InvalidOperationException("LLM returned null content");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting chat response");
+            throw;
+        }
+    }
+
+    public async Task<ModelResponse> GetResponseAsync(string message, ModelConfiguration configuration)
+    {
+        var chatCompletion = _kernel.GetRequiredService<IChatCompletionService>(configuration.ModelId);
+
+        var executionSettings = new OpenAIPromptExecutionSettings
+        {
+            Temperature = configuration.Temperature,
+            MaxTokens = _config.Model.MaxTokens,
+            TopP = configuration.TopP,
+            ToolCallBehavior = _config.Assistant.EnableTools
+                ? ToolCallBehavior.AutoInvokeKernelFunctions
+                : null
+        };
+
+        try
+        {
+            var history = new ChatHistory();
+
+            var systemPrompt = GetSystemPrompt();
+            history.AddSystemMessage(systemPrompt);
+
+            var question = new ChatMessageContent(AuthorRole.User, message);
+            history.Add(question);
+
+            _kernel.AutoFunctionInvocationFilters.Add(new ManualParamsRetrievalFilter(configuration.TopK, configuration.IncludeNeighbors, configuration.MinRelevanceScore));
+
+            var result = await chatCompletion.GetChatMessageContentAsync(
+                history,
+                executionSettings,
+                _kernel
+            );
+
+            if (result.Content is null)
+            {
+                throw new InvalidOperationException("LLM returned null content");
+            }
+
+            history.Add(result);
+
+            var toolExecutions = GetToolExecutions(question, result, history);
+            var modelResponse = new ModelResponse
+            {
+                Query = message,
+                Answer = result.Content,
+                Configuration = configuration,
+                ToolExecutions = toolExecutions
+            };
+
+            return modelResponse;
         }
         catch (Exception ex)
         {
@@ -271,7 +330,30 @@ public class AgenticRAGChatService : IAgenticRAGChatService
 
         return string.Join(", ", toolIds);
     }
-    
+
+    private string GetToolName(ChatMessageContent chatMessageContent)
+    {
+        if (chatMessageContent.Role != AuthorRole.Tool)
+        {
+            return string.Empty;
+        }
+
+        var toolNames = new List<string>();
+
+        foreach (var item in chatMessageContent.Items)
+        {
+            if (item is FunctionResultContent functionCallContent)
+            {
+                if (!string.IsNullOrWhiteSpace(functionCallContent.FunctionName))
+                {
+                    toolNames.Add(functionCallContent.FunctionName);
+                }
+            }
+        }
+
+        return string.Join(", ", toolNames);
+    }
+
     private IReadOnlyCollection<ChatContent> GetAllMessages(IReadOnlyCollection<ChatMessageContent> chatHistory)
     {
         var messages = new List<ChatContent>();
@@ -343,11 +425,7 @@ public class AgenticRAGChatService : IAgenticRAGChatService
 
     private void LoadSystemPrompt()
     {
-        var data = _promptService.LoadPromptFromFile(_config.Assistant.PersonalityPromptPath);
-
-        var systemPromptTemplate = data["system_prompt"];
-        var systemPrompt = systemPromptTemplate.Replace("{assistant_name}", _config.Assistant.Name)
-            .Replace("{previous_summary_text}", string.Empty);
+        var systemPrompt = GetSystemPrompt();
 
         _chatHistory.AddSystemMessage(systemPrompt);
 
@@ -356,6 +434,17 @@ public class AgenticRAGChatService : IAgenticRAGChatService
         {
             _chatMessagesDates.TryAdd(systemMessage, DateTime.Now);
         }
+    }
+
+    private string GetSystemPrompt()
+    {
+        var data = _promptService.LoadPromptFromFile(_config.Assistant.PersonalityPromptPath);
+
+        var systemPromptTemplate = data["system_prompt"];
+        var systemPrompt = systemPromptTemplate.Replace("{assistant_name}", _config.Assistant.Name)
+            .Replace("{previous_summary_text}", string.Empty);
+
+        return systemPrompt;
     }
 
     private void RefreshMessageTimeStamps()
@@ -463,5 +552,132 @@ public class AgenticRAGChatService : IAgenticRAGChatService
         }
 
         return total;
+    }
+
+    private List<ToolExecution> GetToolExecutions(ChatMessageContent question, ChatMessageContent answer, ChatHistory chatHistory)
+    {
+        var toolExecutions = new List<ToolExecution>();
+
+        var startIndex = chatHistory.IndexOf(question);
+        var endIndex = chatHistory.IndexOf(answer);
+
+        if (startIndex != -1 && endIndex != -1 && startIndex < endIndex)
+        {
+            // Skip the start element and everything before it, then skip the start element itself.
+            // Take elements for the calculated count.
+            var assistantAndToolMessages = chatHistory.Skip(startIndex + 1).Take(endIndex - startIndex - 1).ToList();
+
+            foreach (var message in assistantAndToolMessages)
+            {
+                if (message.Role == AuthorRole.Assistant)
+                {
+                    if (message is OpenAIChatMessageContent openAIChatMessageContent)
+                    {
+                        if (openAIChatMessageContent.ToolCalls.Any())
+                        {
+                            var toolCallContents = openAIChatMessageContent.ToolCalls.Select(toolCall =>
+                            {
+                                var functionName = toolCall.FunctionName;
+                                var arguments = toolCall.FunctionArguments.ToString();
+
+                                return new ToolExecution
+                                {
+                                    Role = AuthorRole.Assistant.ToString(),
+                                    ToolCall = new ToolCall
+                                    {
+                                        ToolName = functionName.Replace("DateTools-", string.Empty).Replace("RetrievalTool-", string.Empty),
+                                        Arguments = arguments
+                                    }
+                                };
+                            }).ToArray();
+
+                            toolExecutions.AddRange(toolCallContents);
+                        }
+                    }
+                }
+                else if (message.Role == AuthorRole.Tool)
+                {
+                    var toolName = GetToolName(message);
+
+                    toolExecutions.Add(new ToolExecution
+                    {
+                        Role = AuthorRole.Tool.ToString(),
+                        ToolName = toolName,
+                        Content = message.Content,
+                    });
+                }
+            }
+        }
+
+        return toolExecutions;
+    }
+
+    public GoldenDataset CreateGoldenDatasetFromHistory()
+    {
+        var goldenDataset = new GoldenDataset
+        {
+            CreatedAt = DateTime.Now,
+            Validated = false
+        };
+
+        var chatHistory = GetGroupedMessages(_chatHistory);
+
+        foreach (var historyGroup in chatHistory)
+        {
+            var userQuestion = historyGroup.Value.First(item => item.Role == AuthorRole.User);
+            var assistantAnswer = historyGroup.Value.Last(item => item.Role == AuthorRole.Assistant);
+
+            var goldenDataItem = new GoldenDataItem
+            {
+                Query = userQuestion.Content ?? string.Empty,
+                ReferenceAnswer = assistantAnswer.Content ?? string.Empty
+            };
+
+            //var assistantAndToolMessages = historyGroup.Value.Except(new[] { userQuestion, assistantAnswer }).ToArray();
+            //foreach (var message in assistantAndToolMessages)
+            //{
+            //    if (message.Role == AuthorRole.Assistant)
+            //    {
+            //        if (message is OpenAIChatMessageContent openAIChatMessageContent)
+            //        {
+            //            if (openAIChatMessageContent.ToolCalls.Any())
+            //            {
+            //                var toolCallContents = openAIChatMessageContent.ToolCalls.Select(toolCall =>
+            //                {
+            //                    var functionName = toolCall.FunctionName;
+            //                    var arguments = toolCall.FunctionArguments.ToString();
+
+            //                    return new ToolExecution
+            //                    {
+            //                        Role = AuthorRole.Assistant.ToString(),
+            //                        ToolCall = new ToolCall
+            //                        {
+            //                            ToolName = functionName.Replace("DateTools-", string.Empty).Replace("RetrievalTool-", string.Empty),
+            //                            Arguments = arguments
+            //                        }
+            //                    };
+            //                }).ToArray();
+
+            //                goldenDataItem.ToolExecutions.AddRange(toolCallContents);
+            //            }
+            //        }
+            //    }
+            //    else if (message.Role == AuthorRole.Tool)
+            //    {
+            //        var toolName = GetToolName(message);
+
+            //        goldenDataItem.ToolExecutions.Add(new ToolExecution
+            //        {
+            //            Role = AuthorRole.Tool.ToString(),
+            //            ToolName = toolName,
+            //            Content = message.Content,
+            //        });
+            //    }
+            //}
+
+            goldenDataset.Items.Add(goldenDataItem);
+        }
+
+        return goldenDataset;
     }
 }

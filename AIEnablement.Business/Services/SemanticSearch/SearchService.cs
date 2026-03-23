@@ -47,7 +47,7 @@ namespace AIEnablement.Business.Services.SemanticSearch
             _logger.LogInformation("Indexed {Count} documents for neighbor lookup", _chunksByDocument.Count);
         }
 
-        public async Task<SearchResponse> SearchAsync(string query, int? topK = null)
+        public async Task<SearchResponse> SearchAsync(string query, int? topK = null, bool? includeNeighbors = null, double? minRelevanceScore = null)
         {
             var stopwatch = Stopwatch.StartNew();
 
@@ -62,8 +62,12 @@ namespace AIEnablement.Business.Services.SemanticSearch
 
             foreach (var (chunk, score) in searchResults)
             {
-                if (score < _config.Search.MinRelevanceScore)
+                var minScore = minRelevanceScore ?? _config.Search.MinRelevanceScore;
+
+                if (score < minScore)
+                {
                     continue;
+                }
 
                 var result = new SearchResult
                 {
@@ -73,7 +77,8 @@ namespace AIEnablement.Business.Services.SemanticSearch
                 };
 
                 //Add neighbors if configured
-                if (_config.Search.IncludeNeighbors)
+                var useNeighbors = includeNeighbors ?? _config.Search.IncludeNeighbors;
+                if (useNeighbors)
                 {
                     result.NeighborChunks = GetNeighborChunks(chunk);
                 }
