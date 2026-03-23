@@ -1,0 +1,76 @@
+system_prompt: |
+    You are an expert evaluator for RAG systems. 
+    Provide objective, accurate evaluations based on the criteria given. 
+    Always respond with valid JSON only, no additional text.     
+user_prompt: |
+    Evaluate the quality of retrieved context for answering the query.
+
+    Query:
+    {golden_data_query}
+
+    Expected sources:
+    {expected_sources}
+
+    Ground truth facts:
+    {required_facts}
+
+    Retrieved chunks:
+    {tool_executions}
+
+    Retrieved sources:
+    {sources}
+
+    Generated answer:
+    {response_answer}
+
+    Reference answer: 
+    {reference_answer}
+
+    Perform the following evaluations:
+
+    1. Contextual Precision
+    - How many retrieved chunks are relevant to the query?
+
+    2. Contextual Recall
+    - Do the retrieved chunks contain all key information needed to answer the query?
+
+    3. Context Utilization
+    - How much of the retrieved context was actually used in the answer?
+
+    4. Retrieval Errors
+
+    Identify:
+        1. False Positives: Chunks that were retrieved but are NOT relevant to the query
+        2. False Negatives: Important information that SHOULD have been retrieved but is missing
+           (based on Ground truth facts and Expected sources compared to Retrieved sources if exist)
+    - False Positives: retrieved chunks that are not relevant
+    - False Negatives: important information missing from retrieval
+
+    Return JSON with:
+
+    {
+      "ContextualPrecision": {
+        "RelevantCount": number,
+        "TotalCount": number,
+        "Score": RelevantCount / TotalCount (0.0 to 1.0) (if TotalCount = 0 return 0.0),
+        "Reason": "text"
+      },
+      "ContextualRecall": {
+        "FoundCount": number,
+        "TotalNeeded": number,
+        "Score": "FoundCount / TotalNeeded (0.0 to 1.0) (if TotalNeeded = 0 return 0.0)",
+        "Reason": "text"
+      },
+      "ContextUtilization": {
+        "UtilizedChunks": number,
+        "TotalChunks": number,
+        "Score": "UtilizedChunks / TotalChunks (0.0 to 1.0) (if TotalChunks = 0 return 0.0)",
+        "Reason": "text"
+      },
+      "RetrievalErrors": {
+        "FalsePositives": [],
+        "FalseNegatives": []
+      }
+    }
+
+    Respond ONLY with valid JSON.

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AIEnablement.Infrastructure.Plugins
 {
@@ -30,6 +31,8 @@ namespace AIEnablement.Infrastructure.Plugins
                      "security practices, or any information that would be in official documentation. " +
                      "Returns relevant excerpts from the documents with source information.")]
         public async Task<string> SearchDocuments(
+        bool? includeNeighbors,
+        double? minRelevanceScore,
             [Description("The search query. Be specific and include key terms from the user's question.")]
         string query,
 
@@ -47,7 +50,7 @@ namespace AIEnablement.Infrastructure.Plugins
             {
                 topK = Math.Clamp(topK, 1, _config.Retrieval.MaxTopK);
 
-                var searchResults = await _searchService.SearchAsync(query, topK * 2);// Get more, then filter
+                var searchResults = await _searchService.SearchAsync(query, topK * 2, includeNeighbors, minRelevanceScore);// Get more, then filter
 
                 //Apply filters
                 var filteredResults = searchResults.Results
@@ -73,6 +76,7 @@ namespace AIEnablement.Infrastructure.Plugins
                     relevance_score = Math.Round(r.RelevanceScore, 3),
                     source = new
                     {
+                        section_id = r.Chunk.SectionId,
                         tool_name = r.Chunk.ToolName,
                         document_type = r.Chunk.DocumentType,
                         section_heading = r.Chunk.SectionHeading,
@@ -123,5 +127,38 @@ namespace AIEnablement.Infrastructure.Plugins
                 });
             }
         }
+    }
+
+    public class RagResult
+    {
+        public bool Success { get; set; }
+        public string Query { get; set; }
+        public int  TotalResults { get; set; }
+        public string Tool { get; set; }
+        public List<RagDocumentChunks> Results { get; set; } = [];
+    }
+
+    public class RagDocumentChunks
+    {
+        public int ResultNumber { get; set; }
+        public double RelevanceScore { get; set; }
+        public Source? Source { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public NeighborContext? NeighborContext { get; set; }
+    }
+
+    public class Source
+    {
+        public string SectionId { get; set; } = string.Empty;
+        public string ToolName { get; set; } = string.Empty;
+        public string DocumentType { get; set; } = string.Empty;
+        public string SectionHeading { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
+    }
+
+    public class NeighborContext
+    {
+        public List<string>? ChunksBefore { get; set; }
+        public List<string>? ChunksAfter { get; set; }
     }
 }
