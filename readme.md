@@ -14,6 +14,7 @@ C# .NET 9 console application for generating synthetic software terms and privac
 
 ## Project Structure
 
+```text
 AIEnablement.Business
 ├── Orchestrators
 │   └── DocumentGenerationOrchestrator.cs
@@ -57,6 +58,7 @@ AIEnablement.Utility
 │   └── JsonExtensions.cs
 └── Services
     └── ValidationService.cs
+```
 
 ## Setup
 
